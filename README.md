@@ -8,7 +8,7 @@ There is **no backend and no database**. The daily board is a pure function of `
 
 ## Run locally
 
-Needs Node 18 or newer.
+Needs Node 20 or newer.
 
 ```bash
 npm install
@@ -49,27 +49,32 @@ The client uses the browser’s UTC date, then optionally checks the deployed si
 
 ## Deploy on Cloudflare Pages (free)
 
-This is a static Vite app. Output is `dist/`. No environment secrets, API keys, or Cloudflare datastore.
+This is a static Vite app. Output is `dist/`. No environment secrets, API keys, or Cloudflare datastore. **Do not set a deploy command.** `npm run build` already produces `dist/`; Pages just publishes that folder. `npx wrangler deploy` is for Workers and will fail here (and is unnecessary).
 
-In the Cloudflare dashboard: **Workers & Pages → Create → Pages → Connect to Git**.
+In the Cloudflare dashboard: **Workers & Pages → your project → Settings → Builds**.
 
 | Setting | Value |
 | --- | --- |
 | Framework preset | Vite |
 | Build command | `npm run build` |
 | Build output directory | `dist` |
-| Node version | `18` (or 20) |
+| Deploy command | *(leave empty)* |
+| Node.js version | `20` |
 
-Set Node under **Settings → Environment variables → `NODE_VERSION=18`**, or rely on the repo `.nvmrc`.
+Set Node under **Settings → Environment variables → `NODE_VERSION=20`**, or rely on the repo `.nvmrc` / `.node-version`.
+
+If a previous setup put `npx wrangler deploy` in **Deploy command**, clear it. That is what failed after a successful `vite build`.
 
 After the first deploy, the site is a plain HTTPS origin. SPA fallback lives in `public/_redirects` (`/* /index.html 200`).
 
-Optional CLI (does not require committing Wrangler as a dependency):
+Optional, local-only publish with Wrangler (Node 20, not used by the Pages git build):
 
 ```bash
 npm run build
 npx wrangler pages deploy dist
 ```
+
+Do not install Wrangler globally. Do not use `npx wrangler deploy` (Workers) for this project.
 
 ## Homepage demo
 

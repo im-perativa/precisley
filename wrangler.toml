@@ -1,5 +1,6 @@
-# Optional. Cloudflare Pages can also be configured only in the dashboard.
-# Dashboard: framework Vite, build `npm run build`, output `dist`, Node 18.
+# Optional local helper for `npx wrangler pages deploy dist`.
+# Cloudflare Pages git builds should NOT run wrangler.
+# Dashboard: Vite, build `npm run build`, output `dist`, Node 20, deploy command empty.
 name = "precisley"
 compatibility_date = "2026-09-21"
 pages_build_output_dir = "dist"

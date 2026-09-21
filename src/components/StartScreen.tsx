@@ -42,23 +42,17 @@ export function StartScreen({ date, dailyDone, debugRows, onStart, onViewResults
 
         <div className="lede">
           <p>
-            precisley is a daily attention game. Each day maps five distinct digits (0–9) onto
-            letters <strong>A–E</strong>. That mapping is the key. It stays on screen for the whole
-            run.
+            Five digits on <strong>A–E</strong>. That&apos;s the key. It stays up the whole time.
           </p>
           <p>
-            Every question shows <strong>four</strong> of those five numbers, shuffled. One number
-            from the key is missing. Choose the letter that belongs to the missing number.
+            Each row hides one. Pick the letter. You have five seconds — when the bar runs out, the
+            row stays blank. That&apos;s a miss. Answers lock; you can&apos;t go back.
           </p>
           <p>
-            Play is sequential: one row at a time, with <strong>5 seconds</strong> to answer.
-            Miss the window and the row stays blank — counted wrong, locked, and you move on. No
-            going back, no skipping ahead, and no correctness until you finish all{" "}
-            {debugRows ?? 100} questions. Then the dotted path becomes your results graph.
+            Same puzzle for everyone, every day. Practice if you want another go.
           </p>
           <p className="hint">
-            Desktop: click, or press A–E / 1–5. Mobile: tap the letter buttons. Same puzzle for
-            everyone today (UTC date).
+            Click or tap A–E, or press 1–5.
           </p>
         </div>
 
@@ -73,12 +67,12 @@ export function StartScreen({ date, dailyDone, debugRows, onStart, onViewResults
               <button className="btn" type="button" onClick={() => { unlockAudio(); onStart("practice"); }}>
                 Practice
               </button>
-              <p className="hint">Daily already completed — practice does not overwrite it.</p>
+              <p className="hint">Already played today. Practice won&apos;t overwrite it.</p>
             </>
           ) : (
             <>
               <button className="btn btn-primary" type="button" onClick={() => { unlockAudio(); onStart("daily"); }}>
-                Start daily
+                Play
               </button>
               <button className="btn" type="button" onClick={() => { unlockAudio(); onStart("practice"); }}>
                 Practice
