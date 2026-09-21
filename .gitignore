@@ -1,0 +1,12 @@
+node_modules
+dist
+.DS_Store
+*.local
+.vscode
+.cursor
+.idea
+.env
+.env.*
+.wrangler
+.dev.vars
+verify-results*.png
