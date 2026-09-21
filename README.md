@@ -53,7 +53,7 @@ This is a static Vite SPA. `npm run build` writes `dist/`. There is no Worker sc
 
 ### Workers Builds (this project's dashboard)
 
-The **Builds** UI has no output-directory field. Wrangler publishes `dist/` from `[assets]` in `wrangler.toml`. Leave the existing deploy commands as-is. Wrangler 4 needs **Node 20** on the build image (`NODE_VERSION=20`, or the repo `.nvmrc` / `.node-version`).
+The **Builds** UI has no output-directory field. Wrangler publishes `dist/` from `[assets]` in `wrangler.toml`. SPA fallback is `not_found_handling = "single-page-application"` — do **not** add a Pages `_redirects` rule (`/* /index.html 200`). Wrangler treats that as a loop (error 100324). Leave the existing deploy commands as-is. Wrangler 4 needs **Node 20** on the build image (`NODE_VERSION=20`, or the repo `.nvmrc` / `.node-version`).
 
 | Setting | Value |
 | --- | --- |
