@@ -1,6 +1,9 @@
-# Optional local helper for `npx wrangler pages deploy dist`.
-# Cloudflare Pages git builds should NOT run wrangler.
-# Dashboard: Vite, build `npm run build`, output `dist`, Node 20, deploy command empty.
+# Workers Builds (this project's dashboard): no "output directory" field.
+# dist/ is declared here. No Worker script — static Vite SPA only.
+# Dashboard: build `npm run build`, deploy `npx wrangler deploy`, Node 20.
 name = "precisley"
 compatibility_date = "2026-09-21"
-pages_build_output_dir = "dist"
+
+[assets]
+directory = "./dist"
+not_found_handling = "single-page-application"

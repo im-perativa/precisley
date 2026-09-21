@@ -47,34 +47,35 @@ The client uses the browser’s UTC date, then optionally checks the deployed si
 - Each row has **5 seconds**. Miss the window and the row stays blank — counted as a miss.
 - Correctness is hidden until the end. Then the path reveal runs (Skip or Escape to jump to stats).
 
-## Deploy on Cloudflare Pages (free)
+## Deploy (Cloudflare)
 
-This is a static Vite app. Output is `dist/`. No environment secrets, API keys, or Cloudflare datastore. **Do not set a deploy command.** `npm run build` already produces `dist/`; Pages just publishes that folder. `npx wrangler deploy` is for Workers and will fail here (and is unnecessary).
+This is a static Vite SPA. `npm run build` writes `dist/`. There is no Worker script, no secrets, and no datastore.
 
-In the Cloudflare dashboard: **Workers & Pages → your project → Settings → Builds**.
+### Workers Builds (this project's dashboard)
+
+The **Builds** UI has no output-directory field. Wrangler publishes `dist/` from `[assets]` in `wrangler.toml`. Leave the existing deploy commands as-is. Wrangler 4 needs **Node 20** on the build image (`NODE_VERSION=20`, or the repo `.nvmrc` / `.node-version`).
+
+| Setting | Value |
+| --- | --- |
+| Build command | `npm run build` |
+| Deploy command | `npx wrangler deploy` |
+| Version command | `npx wrangler versions upload` |
+| Root directory | `/` |
+| Node.js | `20` (`NODE_VERSION=20`) |
+
+Do not install Wrangler globally. `npx` downloads it for the deploy step.
+
+### Classic Pages (optional)
+
+If the project is a **Pages** app instead of Workers Builds, that UI has an output directory and should **not** run Wrangler:
 
 | Setting | Value |
 | --- | --- |
 | Framework preset | Vite |
 | Build command | `npm run build` |
 | Build output directory | `dist` |
-| Deploy command | *(leave empty)* |
+| Deploy command | *(empty)* |
 | Node.js version | `20` |
-
-Set Node under **Settings → Environment variables → `NODE_VERSION=20`**, or rely on the repo `.nvmrc` / `.node-version`.
-
-If a previous setup put `npx wrangler deploy` in **Deploy command**, clear it. That is what failed after a successful `vite build`.
-
-After the first deploy, the site is a plain HTTPS origin. SPA fallback lives in `public/_redirects` (`/* /index.html 200`).
-
-Optional, local-only publish with Wrangler (Node 20, not used by the Pages git build):
-
-```bash
-npm run build
-npx wrangler pages deploy dist
-```
-
-Do not install Wrangler globally. Do not use `npx wrangler deploy` (Workers) for this project.
 
 ## Homepage demo
 
