@@ -5,18 +5,22 @@ import { ResultsScreen } from "./components/ResultsScreen.tsx";
 import { dailyPuzzle, debugRowCount, practicePuzzle, rowCount } from "./game/puzzle.ts";
 import { getTodayUtc, syncTodayUtc } from "./game/utcDate.ts";
 import { getDailyResult, loadState, recordRun } from "./game/storage.ts";
-import type { Mode, Phase, Puzzle, RunResult } from "./types.ts";
+import type { Mode, PersonalBests, Phase, Puzzle, RunResult } from "./types.ts";
+
+function bestsFor(mode: Mode, daily: PersonalBests, practice: PersonalBests): PersonalBests {
+  return mode === "daily" ? daily : practice;
+}
 
 export default function App() {
   const [today, setToday] = useState(() => getTodayUtc());
   const debugRows = useMemo(() => debugRowCount(), []);
-  const count = useMemo(() => rowCount(), []);
   const initial = useMemo(() => loadState(), []);
 
   const [phase, setPhase] = useState<Phase>("start");
   const [puzzle, setPuzzle] = useState<Puzzle | null>(null);
   const [result, setResult] = useState<RunResult | null>(() => getDailyResult(getTodayUtc()));
   const [bests, setBests] = useState(initial.bests);
+  const [practiceBests, setPracticeBests] = useState(initial.practiceBests);
   const [completedDays, setCompletedDays] = useState(initial.completedDays);
   const [session, setSession] = useState(0);
 
@@ -38,6 +42,7 @@ export default function App() {
   const persist = useCallback((run: RunResult) => {
     const state = recordRun(run);
     setBests(state.bests);
+    setPracticeBests(state.practiceBests);
     setCompletedDays(state.completedDays);
     setResult(run);
   }, []);
@@ -50,9 +55,9 @@ export default function App() {
         setPhase("results");
         return;
       }
-      setPuzzle(dailyPuzzle(today, count));
+      setPuzzle(dailyPuzzle(today, rowCount("daily")));
     } else {
-      setPuzzle(practicePuzzle(today, count));
+      setPuzzle(practicePuzzle(today, rowCount("practice")));
     }
     setSession((n) => n + 1);
     setPhase("playing");
@@ -82,7 +87,7 @@ export default function App() {
           key={session}
           puzzle={puzzle}
           onRunComplete={persist}
-          bests={bests}
+          bests={bestsFor(puzzle.mode, bests, practiceBests)}
           completedDays={completedDays}
           today={today}
           onHome={() => setPhase("start")}
@@ -92,7 +97,7 @@ export default function App() {
       {phase === "results" && result && (
         <ResultsScreen
           result={result}
-          bests={bests}
+          bests={bestsFor(result.mode, bests, practiceBests)}
           completedDays={completedDays}
           today={today}
           onHome={() => setPhase("start")}

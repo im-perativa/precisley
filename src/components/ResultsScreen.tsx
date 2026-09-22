@@ -1,6 +1,6 @@
 import { type ReactNode, useEffect, useRef, useState } from "react";
 import { flushSync } from "react-dom";
-import { formatDuration, formatPct } from "../game/scoring.ts";
+import { formatDuration, formatPct, SCORE_NOTE } from "../game/scoring.ts";
 import { captureNodePng, copyOrSavePng, waitForTriviaPainted } from "../game/capture.ts";
 import { triviaChime } from "../game/audio.ts";
 import { prefersReducedMotion } from "../game/reveal.ts";
@@ -182,7 +182,7 @@ export function ResultsScreen({
           )}
 
           <p className="score-note">
-            {result.correct}/{result.total} correct · score = acc² × 10,000 − 2 × seconds
+            {result.correct}/{result.total} correct · {SCORE_NOTE}
           </p>
 
           <div className="stat-grid extra-stats">
@@ -214,17 +214,17 @@ export function ResultsScreen({
 
           <div className="stat-grid extra-stats pb-stats">
             <div className="stat">
-              <div className="label">best score</div>
+              <div className="label">{isDaily ? "best score" : "best practice"}</div>
               <div className="value">{bests.bestScore ?? "—"}</div>
             </div>
             <div className="stat">
-              <div className="label">best accuracy</div>
+              <div className="label">{isDaily ? "best accuracy" : "best practice acc"}</div>
               <div className="value">
                 {bests.bestAccuracy === null ? "—" : formatPct(bests.bestAccuracy)}
               </div>
             </div>
             <div className="stat">
-              <div className="label">best time (100%)</div>
+              <div className="label">{isDaily ? "best time (100%)" : "best practice time"}</div>
               <div className="value">
                 {bests.bestTimeMs === null ? "—" : formatDuration(bests.bestTimeMs)}
               </div>

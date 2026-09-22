@@ -2,7 +2,7 @@
 
 A daily attention game. Five distinct digits from **0–9** map to A–E. Each question shows four of those digits; pick the letter of the missing one.
 
-Everyone gets the same puzzle for a given **UTC** calendar day. After you finish, a path replay walks every row and reveals correctness. Each row has five seconds. Answers lock as you go — no edits, no peeking mid-run.
+Everyone gets the same puzzle for a given **UTC** calendar day. After you finish, a path replay walks every row and reveals correctness. Each row has ten seconds. Answers lock as you go — no edits, no peeking mid-run.
 
 There is **no backend and no database**. The daily board is a pure function of `YYYY-MM-DD` plus a seeded RNG. Personal stats stay in `localStorage` on your device.
 
@@ -29,11 +29,13 @@ The puzzle is generated from the UTC date `YYYY-MM-DD` (shown in the UI).
 1. Hash `focustest:daily:YYYY-MM-DD` with FNV-1a 32-bit.
 2. Drive a Mulberry32 PRNG from that seed.
 3. Shuffle 0–9, take five distinct digits as A–E.
-4. Build 100 rows: each omits exactly one key number and shuffles the other four.
+4. Build 60 daily rows (practice builds 20): each omits exactly one key number and shuffles the other four.
 
 No `Math.random()` is used for daily generation. Practice mode uses a fresh random seed and never overwrites the stored daily result.
 
-A completed daily run is saved in `localStorage` (`focustest.v1`). Refreshing that day shows results instead of a new attempt.
+A completed daily run is saved in `localStorage` (`focustest.v3`). Refreshing that day shows results instead of a new attempt. Daily and practice personal bests are stored separately so a 20-row practice 100% cannot overwrite a 60-row daily record. Older `v1` / `v2` keys are not migrated.
+
+Score is `accuracy² × 10,000 − 2 × seconds` (accuracy = correct / that run’s total). Perfect runs rank first; among them, faster wins.
 
 Trivia (“Today you’re as precise as …”) is seeded from the same UTC date (or the practice run seed).
 
@@ -44,7 +46,7 @@ The client uses the browser’s UTC date, then optionally checks the deployed si
 - **Desktop:** click A–E, or press `A`–`E` / `1`–`5`.
 - **Mobile:** tap the letter buttons. The key and timer stay sticky.
 - Only the current row is interactive. Previous answers are locked.
-- Each row has **5 seconds**. Miss the window and the row stays blank — counted as a miss.
+- Each row has **10 seconds**. Miss the window and the row stays blank — counted as a miss.
 - Correctness is hidden until the end. Then the path reveal runs (Skip or Escape to jump to stats).
 
 ## Deploy (Cloudflare)

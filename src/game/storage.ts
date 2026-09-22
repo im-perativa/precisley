@@ -1,6 +1,6 @@
 import type { PersonalBests, RunResult, StoredState } from "../types.ts";
 
-const KEY = "focustest.v1";
+const KEY = "focustest.v3";
 
 const emptyBests = (): PersonalBests => ({
   bestScore: null,
@@ -11,10 +11,11 @@ const emptyBests = (): PersonalBests => ({
 
 function empty(): StoredState {
   return {
-    version: 1,
+    version: 3,
     daily: {},
     completedDays: [],
     bests: emptyBests(),
+    practiceBests: emptyBests(),
   };
 }
 
@@ -23,7 +24,9 @@ export function loadState(): StoredState {
     const raw = localStorage.getItem(KEY);
     if (!raw) return empty();
     const parsed = JSON.parse(raw) as StoredState;
-    if (parsed.version !== 1 || !parsed.daily || !parsed.bests) return empty();
+    if (parsed.version !== 3 || !parsed.daily || !parsed.bests || !parsed.practiceBests) {
+      return empty();
+    }
     return parsed;
   } catch {
     return empty();
@@ -48,8 +51,10 @@ export function recordRun(result: RunResult): StoredState {
         state.completedDays.sort();
       }
     }
+    updateBests(state.bests, result);
+  } else {
+    updateBests(state.practiceBests, result);
   }
-  updateBests(state.bests, result);
   saveState(state);
   return state;
 }

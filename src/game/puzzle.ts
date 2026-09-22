@@ -1,7 +1,8 @@
 import {
-  DEFAULT_ROWS,
+  DAILY_ROWS,
   LETTERS,
   POOL,
+  PRACTICE_ROWS,
   type Letter,
   type Mode,
   type Puzzle,
@@ -14,11 +15,16 @@ export function debugRowCount(): number | null {
   if (!raw) return null;
   const n = Number.parseInt(raw, 10);
   if (!Number.isFinite(n) || n < 1) return null;
-  return Math.min(DEFAULT_ROWS, Math.floor(n));
+  return Math.min(DAILY_ROWS, Math.floor(n));
 }
 
-export function rowCount(): number {
-  return debugRowCount() ?? DEFAULT_ROWS;
+export function defaultRowCount(mode: Mode): number {
+  return mode === "practice" ? PRACTICE_ROWS : DAILY_ROWS;
+}
+
+/** `?debugRows=` overrides both modes for short tests. */
+export function rowCount(mode: Mode): number {
+  return debugRowCount() ?? defaultRowCount(mode);
 }
 
 export function buildPuzzle(opts: {
@@ -27,8 +33,7 @@ export function buildPuzzle(opts: {
   seed: number;
   count?: number;
 }): Puzzle {
-  const fullCount = DEFAULT_ROWS;
-  const visible = opts.count ?? fullCount;
+  const count = opts.count ?? defaultRowCount(opts.mode);
   const rand = mulberry32(opts.seed);
 
   const pool = shuffleInPlace([...POOL], rand); // 0–9, five distinct digits as A–E
@@ -36,7 +41,7 @@ export function buildPuzzle(opts: {
   const letters = [...LETTERS];
 
   const missPattern: number[] = [];
-  for (let i = 0; i < fullCount; i++) {
+  for (let i = 0; i < count; i++) {
     missPattern.push(i % 5);
   }
   shuffleInPlace(missPattern, rand);
@@ -58,7 +63,7 @@ export function buildPuzzle(opts: {
     mode: opts.mode,
     seed: opts.seed,
     key: { letters, numbers },
-    questions: questions.slice(0, visible),
+    questions,
   };
 }
 
@@ -68,7 +73,7 @@ export function dailyPuzzle(date: string, count?: number): Puzzle {
     date,
     mode: "daily",
     seed: seedFromDate(date),
-    count,
+    count: count ?? rowCount("daily"),
   });
 }
 
@@ -78,7 +83,7 @@ export function practicePuzzle(date: string, count?: number): Puzzle {
     date,
     mode: "practice",
     seed,
-    count,
+    count: count ?? rowCount("practice"),
   });
 }
 

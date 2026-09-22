@@ -295,6 +295,30 @@ a:focus-visible {
   color: var(--sub);
 }
 
+.start-foot {
+  margin-top: 4px;
+  font-size: 0.75rem;
+  letter-spacing: 0.02em;
+  color: var(--sub);
+}
+
+.start-foot a {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: inherit;
+  text-decoration: none;
+}
+
+.start-foot-mark {
+  display: block;
+  flex: 0 0 auto;
+}
+
+.start-foot a:hover {
+  color: var(--accent);
+}
+
 /* ---------- hud / game ---------- */
 
 .game {

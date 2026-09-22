@@ -15,8 +15,11 @@ export function formatPct(accuracy: number): string {
 
 /**
  * Score = accuracy² × 10,000 − 2 × seconds.
- * Perfect runs rank first; among them, faster wins.
+ * Accuracy is correct / this run's total (60 daily, 20 practice, or debugRows).
+ * Time is wall-clock seconds for that run. Daily and practice PBs stay separate.
  */
+export const SCORE_NOTE = "score = acc² × 10,000 − 2 × seconds";
+
 export function computeScore(correct: number, total: number, durationMs: number): number {
   if (total <= 0) return 0;
   const accuracy = correct / total;

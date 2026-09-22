@@ -3,7 +3,9 @@ export type Letter = (typeof LETTERS)[number];
 
 /** Five distinct digits are drawn from 0–9 (never 10 — two glyphs blow column spacing). */
 export const POOL = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9] as const;
-export const DEFAULT_ROWS = 100;
+/** Daily length. Practice is `PRACTICE_ROWS`. Demo stays on `DEMO_ROWS` in puzzle.ts. */
+export const DAILY_ROWS = 60;
+export const PRACTICE_ROWS = 20;
 
 export type Mode = "daily" | "practice";
 export type Phase = "start" | "playing" | "results";
@@ -29,7 +31,7 @@ export interface Puzzle {
 }
 
 export interface AnswerEvent {
-  /** Null means the 5s window expired with no pick. */
+  /** Null means the 10s window expired with no pick. */
   letter: Letter | null;
   at: number;
 }
@@ -79,8 +81,11 @@ export interface PersonalBests {
 }
 
 export interface StoredState {
-  version: 1;
+  version: 3;
   daily: Record<string, RunResult>;
   completedDays: string[];
+  /** Daily (60-row) personal bests. */
   bests: PersonalBests;
+  /** Practice (20-row) personal bests — never mixed with daily. */
+  practiceBests: PersonalBests;
 }
