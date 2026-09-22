@@ -6,13 +6,14 @@ import { DemoPlay } from "./DemoPlay.tsx";
 
 interface Props {
   date: string;
+  clockReady: boolean;
   dailyDone: boolean;
   debugRows: number | null;
   onStart: (mode: Mode) => void;
   onViewResults: () => void;
 }
 
-export function StartScreen({ date, dailyDone, debugRows, onStart, onViewResults }: Props) {
+export function StartScreen({ date, clockReady, dailyDone, debugRows, onStart, onViewResults }: Props) {
   useEffect(() => {
     const arm = () => unlockAudio();
     window.addEventListener("pointerdown", arm, true);
@@ -28,7 +29,7 @@ export function StartScreen({ date, dailyDone, debugRows, onStart, onViewResults
       <header className="start-head">
         <BrandMark />
         <div className="hud-meta">
-          <span>{date} UTC</span>
+          <span>{clockReady ? `${date} UTC` : "syncing UTC…"}</span>
           {debugRows !== null && <span>debug {debugRows} rows</span>}
         </div>
       </header>
@@ -70,7 +71,15 @@ export function StartScreen({ date, dailyDone, debugRows, onStart, onViewResults
             </>
           ) : (
             <>
-              <button className="btn btn-primary" type="button" onClick={() => { unlockAudio(); onStart("daily"); }}>
+              <button
+                className="btn btn-primary"
+                type="button"
+                disabled={!clockReady}
+                onClick={() => {
+                  unlockAudio();
+                  onStart("daily");
+                }}
+              >
                 Play
               </button>
               <button className="btn" type="button" onClick={() => { unlockAudio(); onStart("practice"); }}>

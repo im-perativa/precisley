@@ -4,7 +4,7 @@ A daily attention game. Five distinct digits from **0–9** map to A–E. Each q
 
 Everyone gets the same puzzle for a given **UTC** calendar day. After you finish, a path replay walks every row and reveals correctness. Each row has ten seconds. Answers lock as you go — no edits, no peeking mid-run.
 
-There is **no backend and no database**. The daily board is a pure function of `YYYY-MM-DD` plus a seeded RNG. Personal stats stay in `localStorage` on your device.
+There is **no database**. The daily board is a pure function of `YYYY-MM-DD` plus a seeded RNG. Personal stats stay in `localStorage`. Production has a tiny Cloudflare Worker route, `/api/utc`, that only returns today’s UTC date from the Worker clock.
 
 ## Run locally
 
@@ -39,7 +39,7 @@ Score is `accuracy² × 10,000 − 2 × seconds` (accuracy = correct / that run�
 
 Trivia (“Today you’re as precise as …”) is seeded from the same UTC date (or the practice run seed).
 
-The client uses the browser’s UTC date, then optionally checks the deployed site’s HTTP `Date` header to correct mild clock skew. If that fails, it keeps local UTC. No Worker, KV, or D1.
+The client fetches same-origin `/api/utc` (Cloudflare Worker clock in production). Play stays disabled until that resolves so a changed device clock cannot load another day’s board. If the request fails (offline), it falls back to the browser’s UTC date. No KV or D1.
 
 ## How to play
 

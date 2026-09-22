@@ -1,9 +1,11 @@
-# Workers Builds (this project's dashboard): no "output directory" field.
-# dist/ is declared here. No Worker script — static Vite SPA only.
-# Dashboard: build `npm run build`, deploy `npx wrangler deploy`, Node 20.
+# Workers Builds: build `npm run build`, deploy `npx wrangler deploy`, Node 20.
+# Static SPA in dist/ plus a tiny /api/utc that uses Cloudflare's clock.
 name = "precisley"
+main = "worker.ts"
 compatibility_date = "2026-09-21"
 
 [assets]
 directory = "./dist"
+binding = "ASSETS"
 not_found_handling = "single-page-application"
+run_worker_first = ["/api/*"]

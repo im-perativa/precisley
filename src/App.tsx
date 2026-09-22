@@ -13,12 +13,13 @@ function bestsFor(mode: Mode, daily: PersonalBests, practice: PersonalBests): Pe
 
 export default function App() {
   const [today, setToday] = useState(() => getTodayUtc());
+  const [clockReady, setClockReady] = useState(false);
   const debugRows = useMemo(() => debugRowCount(), []);
   const initial = useMemo(() => loadState(), []);
 
   const [phase, setPhase] = useState<Phase>("start");
   const [puzzle, setPuzzle] = useState<Puzzle | null>(null);
-  const [result, setResult] = useState<RunResult | null>(() => getDailyResult(getTodayUtc()));
+  const [result, setResult] = useState<RunResult | null>(null);
   const [bests, setBests] = useState(initial.bests);
   const [practiceBests, setPracticeBests] = useState(initial.practiceBests);
   const [completedDays, setCompletedDays] = useState(initial.completedDays);
@@ -27,7 +28,10 @@ export default function App() {
   useEffect(() => {
     let cancelled = false;
     void syncTodayUtc().then((day) => {
-      if (!cancelled) setToday(day);
+      if (cancelled) return;
+      setToday(day);
+      setResult(getDailyResult(day));
+      setClockReady(true);
     });
     return () => {
       cancelled = true;
@@ -49,6 +53,7 @@ export default function App() {
 
   function start(mode: Mode) {
     if (mode === "daily") {
+      if (!clockReady) return;
       const existing = getDailyResult(today);
       if (existing) {
         setResult(existing);
@@ -63,13 +68,14 @@ export default function App() {
     setPhase("playing");
   }
 
-  const storedDaily = getDailyResult(today);
+  const storedDaily = clockReady ? getDailyResult(today) : null;
 
   return (
     <div className="app">
       {phase === "start" && (
         <StartScreen
           date={today}
+          clockReady={clockReady}
           dailyDone={Boolean(storedDaily)}
           debugRows={debugRows}
           onStart={start}
