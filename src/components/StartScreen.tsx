@@ -49,7 +49,7 @@ export function StartScreen({ date, clockReady, dailyDone, debugRows, onStart, o
             Each row hides one digit. Pick the letter associated with the missing digit. Be <strong>Precise</strong>.
           </p>
           <p>
-            Same 60-row puzzle for everyone, every day. Try practice for another go.
+            Same 60-row puzzle for everyone, every day. Timeout decreases every 10 rows so <strong>stay sharp</strong>.
           </p>
           <p className="hint">
             Desktop: Click the answer button, or press A–E / 1–5 on keyboard. Mobile: Tap the letters.

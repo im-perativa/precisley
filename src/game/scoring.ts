@@ -1,5 +1,5 @@
 import { LETTERS, type AnswerEvent, type Puzzle, type RunResult } from "../types.ts";
-import { ROW_WINDOW_MS } from "./timing.ts";
+import { rowWindowMs } from "./timing.ts";
 
 export function formatDuration(ms: number): string {
   const clamped = Math.max(0, ms);
@@ -68,9 +68,10 @@ export function analyzeRun(
   let prev = startedAt;
   for (let i = 0; i < total; i++) {
     const ev = answers[i];
-    const at = ev?.at ?? prev + ROW_WINDOW_MS;
+    const windowMs = rowWindowMs(i, puzzle.mode);
+    const at = ev?.at ?? prev + windowMs;
     const raw = Math.max(0, at - prev);
-    intervals.push(ev?.letter == null ? ROW_WINDOW_MS : raw);
+    intervals.push(ev?.letter == null ? windowMs : raw);
     prev = at;
   }
   const avgMs =

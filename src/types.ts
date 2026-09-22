@@ -31,7 +31,7 @@ export interface Puzzle {
 }
 
 export interface AnswerEvent {
-  /** Null means the 10s window expired with no pick. */
+  /** Null means the row timer expired with no pick. */
   letter: Letter | null;
   at: number;
 }

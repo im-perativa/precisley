@@ -180,3 +180,25 @@ export function triviaChime(): void {
   ping(784, now, 0.09, 0.045);
   ping(1175, now + 0.068, 0.16, 0.05);
 }
+
+/** Short tighten cue when the daily row window drops. */
+export function paceDrop(): void {
+  const ac = audio();
+  if (!ac) return;
+  const now = ac.currentTime;
+  const blip = (freq: number, at: number) => {
+    const osc = ac.createOscillator();
+    osc.type = "triangle";
+    osc.frequency.value = freq;
+    const g = ac.createGain();
+    g.gain.setValueAtTime(0.0001, at);
+    g.gain.exponentialRampToValueAtTime(0.04, at + 0.01);
+    g.gain.exponentialRampToValueAtTime(0.0001, at + 0.09);
+    osc.connect(g);
+    g.connect(ac.destination);
+    osc.start(at);
+    osc.stop(at + 0.11);
+  };
+  blip(660, now);
+  blip(880, now + 0.07);
+}

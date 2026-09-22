@@ -402,6 +402,91 @@ a:focus-visible {
   color: var(--sub);
   font-size: 0.9rem;
   text-align: right;
+  display: flex;
+  align-items: baseline;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.pace-chip {
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  font-variant-numeric: tabular-nums;
+  color: var(--caret);
+  border: 1px solid color-mix(in srgb, var(--accent) 42%, transparent);
+  padding: 1px 8px;
+  border-radius: 999px;
+  line-height: 1.35;
+}
+
+.pace-chip.is-drop {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+.pace-drop {
+  position: fixed;
+  left: max(16px, 3vw);
+  bottom: 28px;
+  z-index: 30;
+  text-align: left;
+  pointer-events: none;
+}
+
+.pace-drop span {
+  display: block;
+  color: var(--sub);
+  font-size: 0.8rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.pace-drop strong {
+  display: block;
+  font-size: clamp(2.4rem, 8vw, 5.5rem);
+  line-height: 0.9;
+  letter-spacing: -0.06em;
+  font-weight: 700;
+  color: var(--accent);
+  text-shadow: 0 0 12px color-mix(in srgb, var(--accent) 35%, transparent);
+}
+
+@keyframes pace-chip-flash {
+  0% {
+    transform: scale(1.12);
+    box-shadow: 0 0 12px color-mix(in srgb, var(--accent) 45%, transparent);
+  }
+  100% {
+    transform: none;
+    box-shadow: none;
+  }
+}
+
+@keyframes pace-drop-in {
+  0% {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  12% {
+    opacity: 1;
+    transform: none;
+  }
+  78% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .pace-chip.is-drop {
+    animation: pace-chip-flash 900ms ease-out;
+  }
+
+  .pace-drop {
+    animation: pace-drop-in 1.4s ease-out both;
+  }
 }
 
 .key-table {
@@ -722,6 +807,11 @@ a:focus-visible {
 
 .row-timer.is-urgent::after {
   background: var(--error);
+}
+
+.row-timer.is-drop::after {
+  background: var(--text);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--accent) 55%, transparent);
 }
 
 @keyframes row-timer-urgent {
@@ -1396,7 +1486,8 @@ a:focus-visible {
     height: 8px;
   }
 
-  .combo-readout {
+  .combo-readout,
+  .pace-drop {
     left: 12px;
     bottom: 12px;
     top: auto;
@@ -1675,6 +1766,8 @@ a:focus-visible {
   .q-row.is-break-hit,
   .playfield::before,
   .combo-readout,
+  .pace-chip.is-drop,
+  .pace-drop,
   .play-stage.is-leaving,
   .hero-stats-stack,
   .trivia {

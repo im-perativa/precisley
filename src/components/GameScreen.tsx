@@ -5,10 +5,10 @@ import { ResultsScreen } from "./ResultsScreen.tsx";
 import { LETTERS, type AnswerEvent, type Letter, type PersonalBests, type Puzzle, type RunResult } from "../types.ts";
 import { letterFromKey } from "../game/puzzle.ts";
 import { analyzeRun, formatDuration } from "../game/scoring.ts";
-import { keyClick, tone, unlockAudio } from "../game/audio.ts";
+import { keyClick, paceDrop, tone, unlockAudio } from "../game/audio.ts";
 import { advanceStreak, prefersReducedMotion, tripDelay, type HeatKind } from "../game/reveal.ts";
 import { cancelPlayScroll, scrollPlayRow, scrollTripRow } from "../game/scroll.ts";
-import { ROW_WINDOW_MS } from "../game/timing.ts";
+import { rowWindowMs, rowWindowSec } from "../game/timing.ts";
 
 interface Props {
   puzzle: Puzzle;
@@ -57,6 +57,7 @@ export function GameScreen({
   const [okStreak, setOkStreak] = useState(0);
   const [badStreak, setBadStreak] = useState(0);
   const [heatKind, setHeatKind] = useState<HeatKind | "">("");
+  const [paceCue, setPaceCue] = useState<number | null>(null);
 
   useEffect(() => {
     unlockAudio();
@@ -101,8 +102,9 @@ export function GameScreen({
       const i = currentRef.current;
       if (i >= total || answersRef.current[i]) return;
       const elapsed = now - rowStartedAt.current;
-      paintBar(1 - elapsed / ROW_WINDOW_MS);
-      if (elapsed >= ROW_WINDOW_MS) {
+      const windowMs = rowWindowMs(i, puzzle.mode);
+      paintBar(1 - elapsed / windowMs);
+      if (elapsed >= windowMs) {
         lockInRef.current(null);
         return;
       }
@@ -241,11 +243,20 @@ export function GameScreen({
         finishPlay();
         return;
       }
+      if (puzzle.mode === "daily") {
+        const nextSec = rowWindowSec(nextIndex, "daily");
+        const prevSec = rowWindowSec(i, "daily");
+        if (nextSec < prevSec) {
+          unlockAudio();
+          paceDrop();
+          setPaceCue(nextSec);
+        }
+      }
       requestAnimationFrame(() => {
         scrollPlayRow(nextIndex, prefersReducedMotion() ? 0 : 380);
       });
     },
-    [finishPlay, total],
+    [finishPlay, puzzle.mode, total],
   );
   lockInRef.current = lockIn;
 
@@ -287,6 +298,12 @@ export function GameScreen({
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [choose, skipTrip]);
+
+  useEffect(() => {
+    if (paceCue === null) return;
+    const id = window.setTimeout(() => setPaceCue(null), 1400);
+    return () => window.clearTimeout(id);
+  }, [paceCue]);
 
   useEffect(() => {
     return () => {
@@ -364,7 +381,17 @@ export function GameScreen({
               {formatDuration(frozenTime)}
             </div>
             <div className="progress-label">
-              {view === "trip" ? `${Math.min(tripAt + 1, total)} / ${total}` : `${Math.min(current, total)} / ${total}`}
+              {puzzle.mode === "daily" && view === "play" && current < total && (
+                <span
+                  className={`pace-chip ${paceCue !== null ? "is-drop" : ""}`}
+                  aria-label={`Row timer ${rowWindowSec(current, "daily")} seconds`}
+                >
+                  {rowWindowSec(current, "daily")}s
+                </span>
+              )}
+              <span>
+                {view === "trip" ? `${Math.min(tripAt + 1, total)} / ${total}` : `${Math.min(current, total)} / ${total}`}
+              </span>
             </div>
           </div>
 
@@ -444,7 +471,9 @@ export function GameScreen({
                 aria-current={isCurrent || visiting ? "true" : undefined}
                 aria-label={`Question ${q.id}, numbers ${q.shown.join(" ")}`}
               >
-                {isCurrent && <div className="row-timer" aria-hidden />}
+                {isCurrent && (
+                  <div className={`row-timer ${paceCue !== null ? "is-drop" : ""}`} aria-hidden />
+                )}
                 <div className="path" aria-hidden>
                   <span className="node" />
                 </div>
@@ -489,6 +518,13 @@ export function GameScreen({
         <div className={`combo-readout is-${heatKind}`} aria-hidden>
           <span>{comboLabel}</span>
           <strong>{comboValue}</strong>
+        </div>
+      )}
+
+      {view === "play" && paceCue !== null && (
+        <div className="pace-drop" aria-live="polite">
+          <span>Timeout</span>
+          <strong>{paceCue}s</strong>
         </div>
       )}
     </div>
