@@ -26,11 +26,13 @@ export function TriviaLine({
   result,
   revealed,
 }: {
-  result: Pick<RunResult, "accuracy" | "date" | "mode" | "seed">;
+  result: Pick<RunResult, "accuracy" | "correct" | "total" | "date" | "mode" | "seed">;
   revealed: boolean;
 }) {
   const trivia = pickTrivia({
     accuracy: result.accuracy,
+    correct: result.correct,
+    total: result.total,
     date: result.date,
     mode: result.mode,
     seed: result.seed,

@@ -19,12 +19,17 @@ export interface TriviaLine {
 
 /**
  * Accuracy bands, high → low. First matching range wins.
- * Percents are 0–100; 100 is exact perfect only.
+ *
+ * `min` is a percent threshold matched with integer math:
+ *   correct * 100 >= min * total
+ * so every k/60 daily (and k/20 practice) score lands in exactly one band.
+ * Daily 60-row correct counts are noted on each band.
  */
 export const TRIVIA_BANDS: TriviaBand[] = [
   {
     min: 100,
     max: 100,
+    // daily: 60/60
     pool: [
       "a surgeon",
       "a watchmaker",
@@ -54,7 +59,8 @@ export const TRIVIA_BANDS: TriviaBand[] = [
   },
   {
     min: 95,
-    max: 99.999,
+    max: 99,
+    // daily: 57–59/60
     pool: [
       "a jeweler",
       "a concert pianist",
@@ -86,7 +92,8 @@ export const TRIVIA_BANDS: TriviaBand[] = [
   },
   {
     min: 90,
-    max: 94.999,
+    max: 94,
+    // daily: 54–56/60
     pool: [
       "an elite sniper",
       "a fighter pilot",
@@ -116,7 +123,8 @@ export const TRIVIA_BANDS: TriviaBand[] = [
   },
   {
     min: 80,
-    max: 89.999,
+    max: 89,
+    // daily: 48–53/60
     pool: [
       "a librarian",
       "a GPS satellite",
@@ -146,7 +154,8 @@ export const TRIVIA_BANDS: TriviaBand[] = [
   },
   {
     min: 70,
-    max: 79.999,
+    max: 79,
+    // daily: 42–47/60
     pool: [
       "a dart champion",
       "a well-tuned piano",
@@ -176,7 +185,8 @@ export const TRIVIA_BANDS: TriviaBand[] = [
   },
   {
     min: 60,
-    max: 69.999,
+    max: 69,
+    // daily: 36–41/60
     pool: [
       "a weather forecast",
       "a weekend carpenter",
@@ -205,98 +215,128 @@ export const TRIVIA_BANDS: TriviaBand[] = [
     ],
   },
   {
-    min: 45,
-    max: 59.999,
+    min: 50,
+    max: 59,
+    // daily: 30–35/60
+    pool: [
+      "a weather forecast on a clear day",
+      "a kitchen scale",
+      "a paperback map",
+      "a lucky coin",
+      "a well-used cookbook",
+      "a casual golfer",
+      "a slightly bent ruler",
+      "a hand-me-down watch",
+      "a GPS that recalculates",
+      "a pigeon with a route",
+      "a yardstick with a nick",
+      "a hobbyist astronomer",
+      "a tourist with a guidebook",
+      "a homemade sundial",
+      "a spare-room dartboard",
+      "a secondhand metronome",
+      "a flea-market telescope",
+      "a thrift-store camera",
+    ],
+  },
+  {
+    min: 40,
+    max: 49,
+    // daily: 24–29/60
     pool: [
       "a treasure map",
       "a rusty compass",
       "a magic 8-ball",
       "a shuffled playlist",
-      "a thrift-store camera",
       "a weather vane",
       "a Sunday driver",
       "a coin toss",
-      "a secondhand metronome",
-      "a flea-market telescope",
       "a fortune cookie",
       "a mood ring",
       "a horoscope",
-      "a spare-room dartboard",
       "a tourist in a maze",
       "a radio with static",
       "a guess at the time",
       "a crumpled receipt",
       "a half-remembered shortcut",
       "a lottery pencil",
-      "a foggy pair of glasses",
-      "a dog chasing its tail",
       "a rusty bike bell",
       "a maybe-this-way shrug",
     ],
   },
   {
     min: 30,
-    max: 44.999,
+    max: 39,
+    // daily: 18–23/60
     pool: [
       "a foggy windshield",
-      "a blindfolded painter",
       "a bargain binocular",
-      "a startled octopus",
       "a leaking fountain pen",
       "a carnival game",
       "a loose hinge",
       "a half-wound watch",
       "a smudged blueprint",
       "a windblown weathervane",
-      "a drunk dart",
       "a blurry photocopy",
-      "a cat in a paper bag",
-      "a compass next to a magnet",
       "a skipped stitch",
       "a flashlight with dying batteries",
       "a map held upside down",
-      "a sneeze mid-sentence",
       "a wobbly stool",
+      "a foggy pair of glasses",
+      "a dog chasing its tail",
+      "a compass next to a magnet",
+    ],
+  },
+  {
+    min: 20,
+    max: 29,
+    // daily: 12–17/60
+    pool: [
+      "a blindfolded painter",
+      "a startled octopus",
+      "a drunk dart",
+      "a cat in a paper bag",
+      "a sneeze mid-sentence",
       "a camera with the lens cap on",
       "a moth at a porch light",
       "a loose screw",
       "a crossword in the dark",
       "a rubber-band ball",
+      "a hungover GPS",
+      "a supermarket scanner",
+      "a jammed zipper",
+      "a skipping record",
+      "a flickering bulb",
+      "a shopping cart with a bad wheel",
     ],
   },
   {
-    min: 15,
-    max: 29.999,
+    min: 10,
+    max: 19,
+    // daily: 6–11/60
     pool: [
       "a broken printer",
-      "a supermarket scanner",
       "a startled pigeon",
-      "a jammed zipper",
-      "a skipping record",
       "a dropped knitting needle",
       "a sneeze",
       "a supermarket trolley",
-      "a flickering bulb",
       "a loose typewriter key",
-      "a hungover GPS",
       "a sock in a dryer",
       "a startled squirrel",
       "a coffee stain",
-      "a autocorrect",
-      "a shopping cart with a bad wheel",
+      "an autocorrect",
       "a popped balloon",
       "a dropped call",
       "a tangled headphone cord",
-      "a sneeze into a spreadsheet",
       "a cat on a keyboard",
-      "a skipped heartbeat",
       "a jammed photocopier",
       "a fortune that missed",
     ],
   },
   {
     min: 0,
-    max: 14.999,
+    max: 9,
+    // daily: 0–5/60
     pool: [
       "a clumsy panda",
       "a spilled inkwell",
@@ -326,13 +366,19 @@ export const TRIVIA_BANDS: TriviaBand[] = [
   },
 ];
 
-export function bandForAccuracy(accuracy: number): TriviaBand {
-  const pct = Math.max(0, Math.min(100, accuracy * 100));
-  if (accuracy >= 1 || pct >= 100) return TRIVIA_BANDS[0]!;
+/** Integer compare so 57/60 is 95% (not 94.999). */
+export function bandForScore(correct: number, total: number): TriviaBand {
+  if (total <= 0) return TRIVIA_BANDS[TRIVIA_BANDS.length - 1]!;
+  const c = Math.max(0, Math.min(total, Math.round(correct)));
   for (const band of TRIVIA_BANDS) {
-    if (pct >= band.min) return band;
+    if (c * 100 >= band.min * total) return band;
   }
   return TRIVIA_BANDS[TRIVIA_BANDS.length - 1]!;
+}
+
+export function bandForAccuracy(accuracy: number, total = 60): TriviaBand {
+  const c = Math.round(Math.max(0, Math.min(1, accuracy)) * total);
+  return bandForScore(c, total);
 }
 
 export function pickTrivia(opts: {
@@ -340,9 +386,13 @@ export function pickTrivia(opts: {
   date: string;
   mode: Mode;
   seed?: number;
+  correct?: number;
+  total?: number;
 }): TriviaLine {
-  const band = bandForAccuracy(opts.accuracy);
-  // Daily: same UTC day string as getTodayUtc() / puzzle.date. Practice: run seed.
+  const total = opts.total && opts.total > 0 ? opts.total : 60;
+  const correct =
+    opts.correct != null ? opts.correct : Math.round(Math.max(0, Math.min(1, opts.accuracy)) * total);
+  const band = bandForScore(correct, total);
   const key =
     opts.mode === "daily"
       ? `focustest:trivia:${opts.date}:${band.min}`
