@@ -10,10 +10,19 @@ interface Props {
   dailyDone: boolean;
   debugRows: number | null;
   onStart: (mode: Mode) => void;
+  onStartEndlessDev: () => void;
   onViewResults: () => void;
 }
 
-export function StartScreen({ date, clockReady, dailyDone, debugRows, onStart, onViewResults }: Props) {
+export function StartScreen({
+  date,
+  clockReady,
+  dailyDone,
+  debugRows,
+  onStart,
+  onStartEndlessDev,
+  onViewResults,
+}: Props) {
   useEffect(() => {
     const arm = () => unlockAudio();
     window.addEventListener("pointerdown", arm, true);
@@ -43,13 +52,14 @@ export function StartScreen({ date, clockReady, dailyDone, debugRows, onStart, o
 
         <div className="lede">
           <p>
-            <strong>Five</strong> digits mapped to letter <strong>A–E</strong>.
+            <strong>Five</strong> digits are mapped to letter <strong>A–E</strong>.
           </p>
           <p>
-            Each row hides one digit. Pick the letter associated with the missing digit. Be <strong>Precise</strong>.
+            Each row hides one digit. Pick the letter associated with the missing digit, be <strong>precise</strong>.
           </p>
           <p>
             Same 60-row puzzle for everyone, every day. Timeout decreases every 10 rows so <strong>stay sharp</strong>.
+            A perfect board opens <strong className="lede-endless">bonus endless</strong> mode.
           </p>
           <p className="hint">
             Desktop: Click the answer button, or press A–E / 1–5 on keyboard. Mobile: Tap the letters.
@@ -67,7 +77,6 @@ export function StartScreen({ date, clockReady, dailyDone, debugRows, onStart, o
               <button className="btn" type="button" onClick={() => { unlockAudio(); onStart("practice"); }}>
                 Practice
               </button>
-              <p className="hint">Already played today. Practice won&apos;t overwrite it.</p>
             </>
           ) : (
             <>
@@ -87,6 +96,21 @@ export function StartScreen({ date, clockReady, dailyDone, debugRows, onStart, o
               </button>
             </>
           )}
+          {/* DEV only: jump today's daily seed into endless without playing the 60. */}
+          {import.meta.env.DEV && (
+            <button
+              className="btn"
+              type="button"
+              disabled={!clockReady}
+              onClick={() => {
+                unlockAudio();
+                onStartEndlessDev();
+              }}
+            >
+              Endless (dev)
+            </button>
+          )}
+          {dailyDone && <p className="hint">Already played today. Practice won&apos;t overwrite it.</p>}
         </div>
       </div>
 

@@ -202,3 +202,26 @@ export function paceDrop(): void {
   blip(660, now);
   blip(880, now + 0.07);
 }
+
+/** Brighter cue when a perfect daily opens endless. */
+export function endlessEnter(): void {
+  const ac = audio();
+  if (!ac) return;
+  const now = ac.currentTime;
+  const blip = (freq: number, at: number, peak: number) => {
+    const osc = ac.createOscillator();
+    osc.type = "triangle";
+    osc.frequency.value = freq;
+    const g = ac.createGain();
+    g.gain.setValueAtTime(0.0001, at);
+    g.gain.exponentialRampToValueAtTime(peak, at + 0.012);
+    g.gain.exponentialRampToValueAtTime(0.0001, at + 0.12);
+    osc.connect(g);
+    g.connect(ac.destination);
+    osc.start(at);
+    osc.stop(at + 0.14);
+  };
+  blip(523, now, 0.04);
+  blip(784, now + 0.06, 0.045);
+  blip(1046, now + 0.12, 0.04);
+}

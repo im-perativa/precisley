@@ -14,6 +14,7 @@
   --error-extra: #8e3544;
   --ok: #00adb5;
   --ok-soft: #4ecdc4;
+  --bonus: #e0c36a;
   --brand-le: var(--accent);
   --heat: 0;
   --font: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
@@ -88,6 +89,11 @@ a:focus-visible {
 
 .playfield.is-ok::before {
   opacity: 1;
+}
+
+.playfield.is-endless.is-ok::before {
+  box-shadow: inset 0 0 calc(24px + var(--heat) * 10px)
+    color-mix(in srgb, var(--bonus) calc(var(--heat) * 3.2%), transparent);
 }
 
 .playfield.is-bad::before {
@@ -248,11 +254,20 @@ a:focus-visible {
   font-weight: 500;
 }
 
+.lede .lede-endless {
+  color: var(--bonus);
+}
+
 .actions {
   display: flex;
   flex-wrap: wrap;
   gap: 12px;
   align-items: center;
+}
+
+.actions > .hint {
+  flex: 1 0 100%;
+  margin: 0;
 }
 
 .btn {
@@ -424,6 +439,21 @@ a:focus-visible {
   border-color: var(--accent);
 }
 
+.pace-chip.is-bonus {
+  color: var(--bonus);
+  border-color: color-mix(in srgb, var(--bonus) 50%, transparent);
+  font-size: 1.05rem;
+  letter-spacing: 0;
+  line-height: 1;
+  padding: 2px 9px 3px;
+  font-variant-numeric: normal;
+}
+
+.pace-drop.is-endless strong {
+  color: var(--bonus);
+  text-shadow: 0 0 12px color-mix(in srgb, var(--bonus) 40%, transparent);
+}
+
 .pace-drop {
   position: fixed;
   left: max(16px, 3vw);
@@ -593,6 +623,20 @@ a:focus-visible {
   opacity: 1;
 }
 
+.tape i.bonus {
+  background: var(--bonus);
+  opacity: 1;
+}
+
+.tape i.bonus-wait {
+  background: var(--bonus);
+  opacity: 0.55;
+}
+
+.tape-hero i.bonus {
+  opacity: 1;
+}
+
 .tape i.bad {
   background: var(--error);
   opacity: 1;
@@ -606,14 +650,15 @@ a:focus-visible {
   outline-offset: 1px;
 }
 
-.tape i.here.bad {
-  outline-color: var(--error);
+.tape i.here.bonus {
+  outline-color: var(--bonus);
   box-shadow: 0 0 calc(4px + var(--heat) * 2px) calc(2px + var(--heat) * 0.35px)
-    color-mix(in srgb, var(--error) calc(45% + var(--heat) * 4%), transparent);
+    color-mix(in srgb, var(--bonus) calc(45% + var(--heat) * 4%), transparent);
 }
 
 .tape-hero i.ok,
-.tape-hero i.bad {
+.tape-hero i.bad,
+.tape-hero i.bonus {
   transition: background 90ms linear, box-shadow 90ms linear, opacity 90ms linear;
 }
 
@@ -652,31 +697,48 @@ a:focus-visible {
   top: auto;
   bottom: 28px;
   z-index: 30;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  overflow: visible;
   text-align: left;
   pointer-events: none;
-  transition: transform 80ms ease-out, opacity 80ms linear;
+  transition: opacity 80ms linear;
+}
+
+.combo-readout span {
+  display: block;
+  position: relative;
+  z-index: 1;
+  flex: 0 0 auto;
+  color: var(--sub);
+  font-size: 0.8rem;
+  line-height: 1.2;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
 }
 
 .combo-readout strong {
   display: block;
   font-size: clamp(2.4rem, 8vw, 5.5rem);
-  line-height: 0.9;
+  line-height: 1;
   letter-spacing: -0.06em;
   font-weight: 700;
-}
-
-.combo-readout span {
-  color: var(--sub);
-  font-size: 0.8rem;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
+  transform: none;
+  transform-origin: left bottom;
 }
 
 .combo-readout.is-ok strong {
   color: var(--caret);
   text-shadow: 0 0 calc(8px + var(--heat) * 3px)
     color-mix(in srgb, var(--accent) calc(25% + var(--heat) * 5%), transparent);
-  transform: scale(calc(1 + var(--heat) * 0.012));
+}
+
+.combo-readout.is-ok.is-bonus-combo strong {
+  color: var(--bonus);
+  text-shadow: 0 0 calc(8px + var(--heat) * 3px)
+    color-mix(in srgb, var(--bonus) calc(25% + var(--heat) * 5%), transparent);
 }
 
 .combo-readout.is-bad strong {
@@ -688,6 +750,7 @@ a:focus-visible {
 .combo-readout.is-break strong {
   color: var(--text);
   font-size: 1.4rem;
+  line-height: 1.1;
 }
 
 /* ---------- rows ---------- */
@@ -766,6 +829,17 @@ a:focus-visible {
     0 3px 10px color-mix(in srgb, #000 32%, transparent);
 }
 
+.q-row.is-current.is-bonus {
+  background: color-mix(in srgb, var(--bonus) 12%, var(--surface-lift));
+  box-shadow:
+    inset 3px 0 0 var(--bonus),
+    0 3px 10px color-mix(in srgb, #000 32%, transparent);
+}
+
+.q-row.is-current.is-bonus .no {
+  color: var(--bonus);
+}
+
 .q-row.is-current .digits {
   font-size: 1.28rem;
   font-weight: 600;
@@ -831,8 +905,16 @@ a:focus-visible {
   background: color-mix(in srgb, var(--text) 6%, transparent);
 }
 
+.q-row.is-visiting.is-bonus {
+  background: color-mix(in srgb, var(--bonus) 8%, transparent);
+}
+
 .q-row.is-ok {
   background: color-mix(in srgb, var(--ok-soft) calc(6% + var(--heat) * 0.8%), transparent);
+}
+
+.q-row.is-ok.is-bonus {
+  background: color-mix(in srgb, var(--bonus) calc(10% + var(--heat) * 0.9%), transparent);
 }
 
 .q-row.is-bad {
@@ -841,6 +923,10 @@ a:focus-visible {
 
 .q-row.is-ok-hit {
   animation: ok-pulse 280ms ease-out;
+}
+
+.q-row.is-ok-hit.is-bonus {
+  animation: ok-pulse-bonus 280ms ease-out;
 }
 
 .q-row.is-bad-hit {
@@ -860,6 +946,22 @@ a:focus-visible {
   }
   100% {
     filter: brightness(1);
+  }
+}
+
+@keyframes ok-pulse-bonus {
+  0% {
+    filter: brightness(1);
+    box-shadow: 0 0 0 transparent;
+  }
+  40% {
+    filter: brightness(1.18);
+    box-shadow: 0 0 calc(18px + var(--heat) * 8px)
+      color-mix(in srgb, var(--bonus) calc(32% + var(--heat) * 4%), transparent);
+  }
+  100% {
+    filter: brightness(1);
+    box-shadow: 0 0 0 transparent;
   }
 }
 
@@ -933,6 +1035,11 @@ a:focus-visible {
   background: var(--ok-soft);
 }
 
+.q-row.is-visiting.is-bonus .node,
+.q-row.is-ok.is-bonus .node {
+  background: var(--bonus);
+}
+
 .q-row.is-bad .node {
   background: var(--error);
 }
@@ -1002,6 +1109,12 @@ a:focus-visible {
 .q-row.is-ok .choice.is-picked {
   background: var(--ok-soft);
   border-color: var(--ok-soft);
+  color: var(--bg);
+}
+
+.q-row.is-ok.is-bonus .choice.is-picked {
+  background: var(--bonus);
+  border-color: var(--bonus);
   color: var(--bg);
 }
 
@@ -1080,6 +1193,14 @@ a:focus-visible {
   font-weight: 500;
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
+}
+
+.hero-stat.is-bonus .value {
+  color: var(--bonus);
+}
+
+.hero-stats-stack.has-bonus .hero-stat .value {
+  font-size: clamp(1.4rem, 3.4vw, 2.2rem);
 }
 
 .trivia {
@@ -1624,8 +1745,13 @@ a:focus-visible {
 
   .hero-stats-stack {
     flex-direction: row;
+    flex-wrap: wrap;
     gap: 8px 12px;
     justify-content: space-between;
+  }
+
+  .hero-stats-stack.has-bonus .hero-stat .value {
+    font-size: clamp(1.15rem, 5.5vw, 1.6rem);
   }
 
   .hero-stat .value {
@@ -1762,6 +1888,7 @@ a:focus-visible {
 @media (prefers-reduced-motion: reduce) {
   .q-row,
   .q-row.is-ok-hit,
+  .q-row.is-ok-hit.is-bonus,
   .q-row.is-bad-hit,
   .q-row.is-break-hit,
   .playfield::before,

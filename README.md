@@ -2,7 +2,7 @@
 
 A daily attention game. Five distinct digits from **0–9** map to A–E. Each question shows four of those digits; pick the letter of the missing one.
 
-Everyone gets the same puzzle for a given **UTC** calendar day. After you finish, a path replay walks every row and reveals correctness. Daily rows start at ten seconds and tighten every ten rows (10, 8, 6, 5, 4, 3). Practice stays at ten seconds. Answers lock as you go — no edits, no peeking mid-run.
+Everyone gets the same puzzle for a given **UTC** calendar day. After you finish, a path replay walks every row and reveals correctness. Daily rows start at ten seconds and tighten every ten rows (10, 8, 7, 6, 5, 4). A perfect daily unlocks **endless**: 4 seconds per row, −0.1s every ten bonus rows, floor 2s, until the first miss. Practice stays at ten seconds. Answers lock as you go — no edits, no peeking mid-run.
 
 There is **no database**. The daily board is a pure function of `YYYY-MM-DD` plus a seeded RNG. Personal stats stay in `localStorage`. Production has a tiny Cloudflare Worker route, `/api/utc`, that only returns today’s UTC date from the Worker clock.
 
@@ -33,9 +33,9 @@ The puzzle is generated from the UTC date `YYYY-MM-DD` (shown in the UI).
 
 No `Math.random()` is used for daily generation. Practice mode uses a fresh random seed and never overwrites the stored daily result.
 
-A completed daily run is saved in `localStorage` (`focustest.v3`). Refreshing that day shows results instead of a new attempt. Daily and practice personal bests are stored separately so a 20-row practice 100% cannot overwrite a 60-row daily record. Older `v1` / `v2` keys are not migrated.
+Score is `accuracy² × 10,000 − 2 × seconds` (accuracy = correct / scored rows). Perfect runs rank first; among them, faster wins. Endless time is **not** included in daily time or score — those stay the 60-row clock so a longer bonus does not look like a worse time.
 
-Score is `accuracy² × 10,000 − 2 × seconds` (accuracy = correct / that run’s total). Perfect runs rank first; among them, faster wins.
+A completed daily run is saved in `localStorage` (`focustest.v3`). Refreshing that day shows results instead of a new attempt. Daily and practice personal bests are stored separately so a 20-row practice 100% cannot overwrite a 60-row daily record. Older `v1` / `v2` keys are not migrated.
 
 Trivia (“Today you’re as precise as …”) is seeded from the same UTC date (or the practice run seed).
 
@@ -46,7 +46,7 @@ The client fetches same-origin `/api/utc` (Cloudflare Worker clock in production
 - **Desktop:** click A–E, or press `A`–`E` / `1`–`5`.
 - **Mobile:** tap the letter buttons. The key and timer stay sticky.
 - Only the current row is interactive. Previous answers are locked.
-- Daily: **10 / 8 / 7 / 6 / 5 / 4** seconds per ten rows. Practice stays at **10 seconds**. Miss the window and the row stays blank — counted as a miss.
+- Daily: **10 / 8 / 7 / 6 / 5 / 4** seconds per ten rows. A perfect board unlocks **endless** (4s, −0.1s every ten bonus rows, floor 2s, first miss ends it). Practice stays at **10 seconds**. Miss the window and the row stays blank — counted as a miss (except the endless stopper, which is dropped so the card stays 100%).
 - Correctness is hidden until the end. Then the path reveal runs (Skip or Escape to jump to stats).
 
 ## Deploy (Cloudflare)

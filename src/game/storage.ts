@@ -7,6 +7,7 @@ const emptyBests = (): PersonalBests => ({
   bestAccuracy: null,
   bestTimeMs: null,
   bestTimeDate: null,
+  bestBonusRows: null,
 });
 
 function empty(): StoredState {
@@ -41,22 +42,58 @@ export function getDailyResult(date: string): RunResult | null {
   return loadState().daily[date] ?? null;
 }
 
-export function recordRun(result: RunResult): StoredState {
+function baseLen(result: RunResult): number {
+  if (result.baseTotal != null) return result.baseTotal;
+  if (result.bonusRows != null && result.bonusRows > 0) {
+    return result.total - result.bonusRows;
+  }
+  return result.total;
+}
+
+/** A shorter debug/skip board must not replace a stored full daily. */
+function shouldKeepDaily(prev: RunResult | undefined, result: RunResult): boolean {
+  if (!prev) return true;
+  if (baseLen(result) < baseLen(prev)) return false;
+  const bonus = result.bonusRows ?? 0;
+  const prevBonus = prev.bonusRows ?? 0;
+  return result.accuracy === 1 && prev.accuracy === 1 && bonus >= prevBonus;
+}
+
+export function recordRun(
+  result: RunResult,
+  opts?: { persistDaily?: boolean },
+): StoredState {
+  const persistDaily = opts?.persistDaily !== false;
   const state = loadState();
   if (result.mode === "daily") {
-    if (!state.daily[result.date]) {
+    const prev = state.daily[result.date];
+    if (persistDaily && shouldKeepDaily(prev, result)) {
       state.daily[result.date] = result;
       if (!state.completedDays.includes(result.date)) {
         state.completedDays.push(result.date);
         state.completedDays.sort();
       }
+      updateBests(state.bests, result);
+    } else {
+      // Protected real daily (or skip-to-bonus after one): still record endless PB.
+      updateBonusBest(state.bests, result);
     }
-    updateBests(state.bests, result);
   } else {
     updateBests(state.practiceBests, result);
   }
   saveState(state);
   return state;
+}
+
+function enteredBonus(result: RunResult): boolean {
+  return Boolean(result.enteredBonus) || (result.bonusRows ?? 0) > 0;
+}
+
+/** Longest endless only ever increases — a bonus-0 checkpoint must not wipe a higher PB. */
+function updateBonusBest(bests: PersonalBests, result: RunResult): void {
+  if (result.mode !== "daily" || !enteredBonus(result)) return;
+  const bonus = result.bonusRows ?? 0;
+  bests.bestBonusRows = Math.max(bests.bestBonusRows ?? 0, bonus);
 }
 
 function updateBests(bests: PersonalBests, result: RunResult): void {
@@ -72,6 +109,7 @@ function updateBests(bests: PersonalBests, result: RunResult): void {
       bests.bestTimeDate = result.date;
     }
   }
+  updateBonusBest(bests, result);
 }
 
 export function lastDays(completedDays: string[], today: string, n: number): boolean[] {

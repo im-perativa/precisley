@@ -3,6 +3,7 @@ import {
   LETTERS,
   POOL,
   PRACTICE_ROWS,
+  type KeyMap,
   type Letter,
   type Mode,
   type Puzzle,
@@ -10,7 +11,13 @@ import {
 } from "../types.ts";
 import { hashString, mulberry32, seedFromDate, shuffleInPlace } from "./rng.ts";
 
+/** Pregenerated endless rows (same continued daily seed). */
+export const BONUS_CHUNK = 120;
+/** Keep this many unused bonus rows on the live list. */
+export const BONUS_LOOKAHEAD = 10;
+
 export function debugRowCount(): number | null {
+  if (!import.meta.env.DEV) return null;
   const raw = new URLSearchParams(window.location.search).get("debugRows");
   if (!raw) return null;
   const n = Number.parseInt(raw, 10);
@@ -22,9 +29,45 @@ export function defaultRowCount(mode: Mode): number {
   return mode === "practice" ? PRACTICE_ROWS : DAILY_ROWS;
 }
 
-/** `?debugRows=` overrides both modes for short tests. */
+/** `?debugRows=` overrides both modes for short tests. DEV builds only. */
 export function rowCount(mode: Mode): number {
   return debugRowCount() ?? defaultRowCount(mode);
+}
+
+function makeKey(rand: () => number): KeyMap {
+  const pool = shuffleInPlace([...POOL], rand);
+  return { letters: [...LETTERS], numbers: pool.slice(0, 5) };
+}
+
+function generateQuestions(key: KeyMap, rand: () => number, startId: number, count: number): Question[] {
+  if (count <= 0) return [];
+  const missPattern: number[] = [];
+  for (let i = 0; i < count; i++) {
+    missPattern.push(i % 5);
+  }
+  shuffleInPlace(missPattern, rand);
+  return missPattern.map((missingIndex, i) => {
+    const missing = key.numbers[missingIndex]!;
+    const shown = key.numbers.filter((_, idx) => idx !== missingIndex);
+    shuffleInPlace(shown, rand);
+    return {
+      id: startId + i,
+      shown: [...shown],
+      missing,
+      answer: key.letters[missingIndex]!,
+    };
+  });
+}
+
+/** Replay RNG through key + `baseCount` + `bonusAlready`, then mint `extra` more bonus rows. */
+export function moreBonusQuestions(puzzle: Puzzle, bonusAlready: number, extra = BONUS_CHUNK): Question[] {
+  const rand = mulberry32(puzzle.seed);
+  const key = makeKey(rand);
+  generateQuestions(key, rand, 1, puzzle.questions.length);
+  if (bonusAlready > 0) {
+    generateQuestions(key, rand, puzzle.questions.length + 1, bonusAlready);
+  }
+  return generateQuestions(key, rand, puzzle.questions.length + bonusAlready + 1, extra);
 }
 
 export function buildPuzzle(opts: {
@@ -35,35 +78,18 @@ export function buildPuzzle(opts: {
 }): Puzzle {
   const count = opts.count ?? defaultRowCount(opts.mode);
   const rand = mulberry32(opts.seed);
-
-  const pool = shuffleInPlace([...POOL], rand); // 0–9, five distinct digits as A–E
-  const numbers = pool.slice(0, 5);
-  const letters = [...LETTERS];
-
-  const missPattern: number[] = [];
-  for (let i = 0; i < count; i++) {
-    missPattern.push(i % 5);
-  }
-  shuffleInPlace(missPattern, rand);
-
-  const questions: Question[] = missPattern.map((missingIndex, i) => {
-    const missing = numbers[missingIndex]!;
-    const shown = numbers.filter((_, idx) => idx !== missingIndex);
-    shuffleInPlace(shown, rand);
-    return {
-      id: i + 1,
-      shown: [...shown],
-      missing,
-      answer: letters[missingIndex]!,
-    };
-  });
+  const key = makeKey(rand);
+  const questions = generateQuestions(key, rand, 1, count);
+  const bonus =
+    opts.mode === "daily" ? generateQuestions(key, rand, count + 1, BONUS_CHUNK) : [];
 
   return {
     date: opts.date,
     mode: opts.mode,
     seed: opts.seed,
-    key: { letters, numbers },
+    key,
     questions,
+    bonus,
   };
 }
 

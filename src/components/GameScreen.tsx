@@ -2,13 +2,21 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react
 import { BrandMark } from "./BrandMark.tsx";
 import { DotGraph } from "./DotGraph.tsx";
 import { ResultsScreen } from "./ResultsScreen.tsx";
-import { LETTERS, type AnswerEvent, type Letter, type PersonalBests, type Puzzle, type RunResult } from "../types.ts";
-import { letterFromKey } from "../game/puzzle.ts";
+import {
+  LETTERS,
+  type AnswerEvent,
+  type Letter,
+  type PersonalBests,
+  type Puzzle,
+  type Question,
+  type RunResult,
+} from "../types.ts";
+import { BONUS_LOOKAHEAD, letterFromKey, moreBonusQuestions } from "../game/puzzle.ts";
 import { analyzeRun, formatDuration } from "../game/scoring.ts";
-import { keyClick, paceDrop, tone, unlockAudio } from "../game/audio.ts";
+import { endlessEnter, keyClick, paceDrop, tone, unlockAudio } from "../game/audio.ts";
 import { advanceStreak, prefersReducedMotion, tripDelay, type HeatKind } from "../game/reveal.ts";
 import { cancelPlayScroll, scrollPlayRow, scrollTripRow } from "../game/scroll.ts";
-import { rowWindowMs, rowWindowSec } from "../game/timing.ts";
+import { formatWindowLabel, rowWindowMs, rowWindowSec } from "../game/timing.ts";
 
 interface Props {
   puzzle: Puzzle;
@@ -18,6 +26,8 @@ interface Props {
   today: string;
   onHome: () => void;
   onPractice: () => void;
+  /** DEV: treat the base board as already perfect and enter endless on mount. */
+  skipToBonus?: boolean;
 }
 
 type View = "play" | "trip" | "results";
@@ -30,11 +40,20 @@ export function GameScreen({
   today,
   onHome,
   onPractice,
+  skipToBonus = false,
 }: Props) {
-  const total = puzzle.questions.length;
+  const baseTotal = puzzle.questions.length;
+  const skipIn = skipToBonus && puzzle.mode === "daily";
   const startedAt = useRef(performance.now());
-  const answersRef = useRef<(AnswerEvent | null)[]>(Array(total).fill(null));
-  const currentRef = useRef(0);
+  const answersRef = useRef<(AnswerEvent | null)[]>(
+    skipIn
+      ? puzzle.questions.map((q) => ({ letter: q.answer, at: startedAt.current }))
+      : Array(baseTotal).fill(null),
+  );
+  const questionsRef = useRef<Question[]>(puzzle.questions);
+  const bonusPoolRef = useRef<Question[]>([...puzzle.bonus]);
+  const bonusGeneratedRef = useRef(puzzle.bonus.length);
+  const currentRef = useRef(skipIn ? baseTotal : 0);
   const viewRef = useRef<View>("play");
   const timerRef = useRef<number | null>(null);
   const cancelledRef = useRef(false);
@@ -44,12 +63,20 @@ export function GameScreen({
   const firstRects = useRef<DOMRect[]>([]);
   const flipAnims = useRef<Animation[]>([]);
   const skippedRef = useRef(false);
+  const skipAppliedRef = useRef(false);
   const rowStartedAt = useRef(performance.now());
   const rowRafRef = useRef(0);
   const lockInRef = useRef<(letter: Letter | null) => void>(() => {});
+  const dailyEndedAt = useRef<number | null>(null);
+  const scoredRef = useRef({ qs: puzzle.questions, n: baseTotal });
 
-  const [current, setCurrent] = useState(0);
-  const [answers, setAnswers] = useState<(AnswerEvent | null)[]>(() => Array(total).fill(null));
+  const [board, setBoard] = useState<Question[]>(puzzle.questions);
+  const [current, setCurrent] = useState(skipIn ? baseTotal : 0);
+  const [answers, setAnswers] = useState<(AnswerEvent | null)[]>(() =>
+    skipIn
+      ? puzzle.questions.map((q) => ({ letter: q.answer, at: startedAt.current }))
+      : Array(baseTotal).fill(null),
+  );
   const [elapsed, setElapsed] = useState(0);
   const [view, setView] = useState<View>("play");
   const [result, setResult] = useState<RunResult | null>(null);
@@ -58,13 +85,19 @@ export function GameScreen({
   const [badStreak, setBadStreak] = useState(0);
   const [heatKind, setHeatKind] = useState<HeatKind | "">("");
   const [paceCue, setPaceCue] = useState<number | null>(null);
+  const [endlessCue, setEndlessCue] = useState(skipIn);
+  const [inBonus, setInBonus] = useState(skipIn);
 
   useEffect(() => {
     unlockAudio();
     window.scrollTo(0, 0);
-    requestAnimationFrame(() => scrollPlayRow(0, 0));
+    requestAnimationFrame(() => scrollPlayRow(skipIn ? baseTotal : 0, 0));
     const id = window.setInterval(() => {
       if (viewRef.current !== "play") return;
+      if (dailyEndedAt.current != null) {
+        setElapsed(Math.max(0, dailyEndedAt.current - startedAt.current));
+        return;
+      }
       setElapsed(performance.now() - startedAt.current);
     }, 32);
     return () => {
@@ -100,11 +133,11 @@ export function GameScreen({
     const tick = (now: number) => {
       if (viewRef.current !== "play") return;
       const i = currentRef.current;
-      if (i >= total || answersRef.current[i]) return;
-      const elapsed = now - rowStartedAt.current;
-      const windowMs = rowWindowMs(i, puzzle.mode);
-      paintBar(1 - elapsed / windowMs);
-      if (elapsed >= windowMs) {
+      if (i >= questionsRef.current.length || answersRef.current[i]) return;
+      const elapsedMs = now - rowStartedAt.current;
+      const windowMs = rowWindowMs(i, puzzle.mode, baseTotal);
+      paintBar(1 - elapsedMs / windowMs);
+      if (elapsedMs >= windowMs) {
         lockInRef.current(null);
         return;
       }
@@ -115,12 +148,12 @@ export function GameScreen({
 
   const goToResults = useCallback(() => {
     snapshotTape();
-    setTripAt(total);
+    setTripAt(scoredRef.current.n);
     setHeatKind("");
     viewRef.current = "results";
     setView("results");
     window.scrollTo({ top: 0, behavior: prefersReducedMotion() ? "auto" : "smooth" });
-  }, [total]);
+  }, []);
 
   const skipTrip = useCallback(() => {
     if (viewRef.current !== "trip") return;
@@ -138,18 +171,20 @@ export function GameScreen({
     let i = 0;
     let okS = 0;
     let badS = 0;
+    const qs = scoredRef.current.qs;
+    const n = scoredRef.current.n;
 
     const step = () => {
       if (cancelledRef.current) return;
-      if (i >= total) {
-        setTripAt(total);
+      if (i >= n) {
+        setTripAt(n);
         timerRef.current = window.setTimeout(() => {
           if (!cancelledRef.current) goToResults();
         }, prefersReducedMotion() ? 60 : 280);
         return;
       }
 
-      const q = puzzle.questions[i]!;
+      const q = qs[i]!;
       const picked = answersRef.current[i]?.letter;
       const ok = picked === q.answer;
       const next = advanceStreak(okS, badS, ok);
@@ -172,7 +207,7 @@ export function GameScreen({
     };
 
     timerRef.current = window.setTimeout(step, prefersReducedMotion() ? 30 : 120);
-  }, [goToResults, puzzle.questions, total]);
+  }, [goToResults]);
 
   useLayoutEffect(() => {
     if (view !== "results") return;
@@ -205,25 +240,90 @@ export function GameScreen({
     });
   }, [view]);
 
+  const takeBonus = (n: number) => {
+    if (n <= 0) return;
+    while (bonusPoolRef.current.length < n) {
+      const extra = moreBonusQuestions(puzzle, bonusGeneratedRef.current);
+      bonusGeneratedRef.current += extra.length;
+      bonusPoolRef.current.push(...extra);
+    }
+    const next = bonusPoolRef.current.splice(0, n);
+    questionsRef.current = [...questionsRef.current, ...next];
+    setBoard(questionsRef.current);
+    answersRef.current = [...answersRef.current, ...Array(next.length).fill(null)];
+    setAnswers((prev) => [...prev, ...Array(next.length).fill(null)]);
+  };
+
+  const ensureLookahead = () => {
+    const need = currentRef.current + BONUS_LOOKAHEAD + 1 - questionsRef.current.length;
+    if (need > 0) takeBonus(need);
+  };
+
   const finishPlay = useCallback(() => {
     stopRowClock();
     const ended = performance.now();
-    setElapsed(ended - startedAt.current);
-    const filled = puzzle.questions.map((_, i) => {
+    const scoredN = dailyEndedAt.current != null ? currentRef.current : baseTotal;
+    const scoredQs = questionsRef.current.slice(0, scoredN);
+    questionsRef.current = scoredQs;
+    setBoard(scoredQs);
+    const filled = scoredQs.map((_, i) => {
       return answersRef.current[i] ?? { letter: null, at: ended };
     });
-    const next = analyzeRun(puzzle, filled, startedAt.current, ended);
+    answersRef.current = filled;
+    setAnswers(filled);
+    scoredRef.current = { qs: scoredQs, n: scoredN };
+    const next = analyzeRun({ ...puzzle, questions: scoredQs }, filled, startedAt.current, ended, {
+      baseTotal,
+      dailyEndedAt: dailyEndedAt.current,
+    });
+    setElapsed(next.durationMs);
     setResult(next);
     onRunCompleteRef.current(next);
     runTrip();
-  }, [puzzle, runTrip]);
+  }, [baseTotal, puzzle, runTrip]);
+
+  const enterBonus = useCallback(() => {
+    const at = performance.now();
+    dailyEndedAt.current = at;
+    setInBonus(true);
+    setEndlessCue(true);
+    setElapsed(Math.max(0, at - startedAt.current));
+    unlockAudio();
+    endlessEnter();
+    ensureLookahead();
+    const filled = puzzle.questions.map((_, i) => answersRef.current[i]!);
+    const checkpoint = analyzeRun({ ...puzzle, questions: puzzle.questions }, filled, startedAt.current, at, {
+      baseTotal,
+      dailyEndedAt: at,
+    });
+    onRunCompleteRef.current(checkpoint);
+  }, [baseTotal, puzzle]);
+
+  useLayoutEffect(() => {
+    if (!skipIn || skipAppliedRef.current) return;
+    skipAppliedRef.current = true;
+    enterBonus();
+    requestAnimationFrame(() => {
+      scrollPlayRow(baseTotal, prefersReducedMotion() ? 0 : 380);
+    });
+  }, [skipIn, enterBonus, baseTotal]);
 
   const lockIn = useCallback(
     (letter: Letter | null) => {
       if (viewRef.current !== "play") return;
       const i = currentRef.current;
-      if (i >= total) return;
+      const q = questionsRef.current[i];
+      if (!q) return;
       if (answersRef.current[i]) return;
+      const inBonusNow = i >= baseTotal;
+      const correct = letter !== null && letter === q.answer;
+
+      if (inBonusNow && !correct) {
+        stopRowClock();
+        finishPlay();
+        return;
+      }
+
       stopRowClock();
       if (letter !== null) {
         unlockAudio();
@@ -239,24 +339,44 @@ export function GameScreen({
       const nextIndex = i + 1;
       currentRef.current = nextIndex;
       setCurrent(nextIndex);
-      if (nextIndex >= total) {
+
+      if (puzzle.mode === "daily" && nextIndex === baseTotal) {
+        const perfect = puzzle.questions.every((qq, idx) => answersRef.current[idx]?.letter === qq.answer);
+        if (perfect) {
+          enterBonus();
+          requestAnimationFrame(() => {
+            scrollPlayRow(nextIndex, prefersReducedMotion() ? 0 : 380);
+          });
+          return;
+        }
         finishPlay();
         return;
       }
-      if (puzzle.mode === "daily") {
-        const nextSec = rowWindowSec(nextIndex, "daily");
-        const prevSec = rowWindowSec(i, "daily");
+
+      if (nextIndex >= questionsRef.current.length) {
+        finishPlay();
+        return;
+      }
+
+      if (puzzle.mode === "daily" && nextIndex < baseTotal) {
+        const nextSec = rowWindowSec(nextIndex, "daily", baseTotal);
+        const prevSec = rowWindowSec(i, "daily", baseTotal);
         if (nextSec < prevSec) {
           unlockAudio();
           paceDrop();
           setPaceCue(nextSec);
         }
       }
+
+      if (nextIndex >= baseTotal && puzzle.mode === "daily") {
+        ensureLookahead();
+      }
+
       requestAnimationFrame(() => {
         scrollPlayRow(nextIndex, prefersReducedMotion() ? 0 : 380);
       });
     },
-    [finishPlay, puzzle.mode, total],
+    [baseTotal, enterBonus, finishPlay, puzzle.mode, puzzle.questions],
   );
   lockInRef.current = lockIn;
 
@@ -265,11 +385,11 @@ export function GameScreen({
       stopRowClock();
       return;
     }
-    if (current >= total) return;
+    if (current >= board.length) return;
     if (answersRef.current[current]) return;
     startRowClock();
     return () => stopRowClock();
-  }, [current, total, view]);
+  }, [board.length, current, view]);
 
   const choose = useCallback(
     (letter: Letter) => {
@@ -306,6 +426,12 @@ export function GameScreen({
   }, [paceCue]);
 
   useEffect(() => {
+    if (!endlessCue) return;
+    const id = window.setTimeout(() => setEndlessCue(false), 1400);
+    return () => window.clearTimeout(id);
+  }, [endlessCue]);
+
+  useEffect(() => {
     return () => {
       cancelledRef.current = true;
       if (timerRef.current !== null) window.clearTimeout(timerRef.current);
@@ -313,24 +439,51 @@ export function GameScreen({
     };
   }, []);
 
+  const scoredN = result?.total ?? scoredRef.current.n;
   const heat = heatKind === "ok" ? okStreak : heatKind === "bad" ? badStreak : heatKind === "break" ? 8 : 0;
   const frozenTime = result?.durationMs ?? elapsed;
   const comboValue =
     heatKind === "break" ? "broken" : heatKind === "ok" ? String(okStreak) : heatKind === "bad" ? String(badStreak) : "";
   const comboLabel =
     heatKind === "break" ? "streak broken" : heatKind === "ok" ? "combo" : heatKind === "bad" ? "miss" : "";
+  const bonusCombo = heatKind === "ok" && inBonus && tripAt >= baseTotal;
+  const bonusWash = inBonus && (view !== "trip" || tripAt >= baseTotal);
   const filledFlags = answers.map((a) => Boolean(a));
   const mask = result?.correctMask ?? null;
-  const revealedThrough = view === "results" ? total - 1 : view === "play" ? -1 : tripAt;
+  const graphCount = view === "play" ? board.length : scoredN;
+  const revealedThrough = view === "results" ? scoredN - 1 : view === "play" ? -1 : tripAt;
+  const windowSec = rowWindowSec(current, puzzle.mode, baseTotal);
+  const bonusFrom =
+    puzzle.mode !== "daily"
+      ? undefined
+      : view === "results" && (result?.bonusRows ?? 0) === 0
+        ? undefined
+        : baseTotal;
+  const progressText = (() => {
+    if (view === "trip") {
+      const n = scoredN;
+      if (inBonus || (result?.bonusRows ?? 0) > 0 || tripAt >= baseTotal) {
+        const bonusAt = Math.max(0, Math.min(tripAt + 1, n) - baseTotal);
+        return bonusAt > 0 ? `bonus ${bonusAt}` : `${Math.min(tripAt + 1, baseTotal)} / ${baseTotal}`;
+      }
+      return `${Math.min(tripAt + 1, n)} / ${n}`;
+    }
+    if (inBonus || current >= baseTotal) {
+      return `bonus ${Math.max(0, current - baseTotal)}`;
+    }
+    return `${Math.min(current, baseTotal)} / ${baseTotal}`;
+  })();
+
   const graph = (
     <DotGraph
-      count={total}
+      count={graphCount}
       filled={filledFlags}
       mask={mask}
       revealedThrough={revealedThrough}
       activeIndex={view === "trip" ? tripAt : -1}
       variant={view === "play" || view === "trip" ? "hud" : "hero"}
       tapeRef={tapeRef}
+      bonusFrom={bonusFrom}
     />
   );
 
@@ -351,9 +504,11 @@ export function GameScreen({
     );
   }
 
+  const visibleBoard = view === "play" ? board : scoredRef.current.qs;
+
   return (
     <div
-      className={`playfield ${heatKind === "ok" ? "is-ok" : heatKind === "bad" ? "is-bad" : heatKind === "break" ? "is-break" : ""}`}
+      className={`playfield ${heatKind === "ok" ? "is-ok" : heatKind === "bad" ? "is-bad" : heatKind === "break" ? "is-break" : ""} ${bonusWash ? "is-endless" : ""}`}
       style={{ ["--heat" as string]: String(heat) }}
     >
       <div className="wrap game">
@@ -381,17 +536,15 @@ export function GameScreen({
               {formatDuration(frozenTime)}
             </div>
             <div className="progress-label">
-              {puzzle.mode === "daily" && view === "play" && current < total && (
+              {puzzle.mode === "daily" && view === "play" && (
                 <span
-                  className={`pace-chip ${paceCue !== null ? "is-drop" : ""}`}
-                  aria-label={`Row timer ${rowWindowSec(current, "daily")} seconds`}
+                  className={`pace-chip ${paceCue !== null ? "is-drop" : ""} ${inBonus ? "is-bonus" : ""}`}
+                  aria-label={inBonus ? "Endless" : `Row timer ${windowSec} seconds`}
                 >
-                  {rowWindowSec(current, "daily")}s
+                  {inBonus ? "∞" : formatWindowLabel(windowSec)}
                 </span>
               )}
-              <span>
-                {view === "trip" ? `${Math.min(tripAt + 1, total)} / ${total}` : `${Math.min(current, total)} / ${total}`}
-              </span>
+              <span>{progressText}</span>
             </div>
           </div>
 
@@ -436,16 +589,17 @@ export function GameScreen({
         </header>
 
         <div className="list" role="list">
-          {puzzle.questions.map((q, i) => {
+          {visibleBoard.map((q, i) => {
             const picked = answers[i]?.letter ?? null;
             const onTrip = view === "trip";
             const revealed = onTrip && i <= tripAt;
             const visiting = onTrip && i === tripAt;
             const ok = revealed && Boolean(mask?.[i]);
-            const bad = revealed && mask !== null && !mask[i];
+            const bad = revealed && mask !== null && !mask[i] && i < baseTotal;
             const isCurrent = !onTrip && i === current;
             const isLocked = !onTrip && i < current;
             const isFuture = !onTrip && i > current;
+            const isBonusRow = i >= baseTotal;
 
             const rowClass = [
               "q-row",
@@ -455,6 +609,7 @@ export function GameScreen({
               visiting ? "is-visiting" : "",
               ok ? "is-ok" : "",
               bad ? "is-bad" : "",
+              isBonusRow ? "is-bonus" : "",
               visiting && heatKind === "ok" ? "is-ok-hit" : "",
               visiting && heatKind === "bad" ? "is-bad-hit" : "",
               visiting && heatKind === "break" ? "is-break-hit" : "",
@@ -515,7 +670,7 @@ export function GameScreen({
       </div>
 
       {view === "trip" && comboValue && (
-        <div className={`combo-readout is-${heatKind}`} aria-hidden>
+        <div className={`combo-readout is-${heatKind}${bonusCombo ? " is-bonus-combo" : ""}`} aria-hidden>
           <span>{comboLabel}</span>
           <strong>{comboValue}</strong>
         </div>
@@ -524,7 +679,14 @@ export function GameScreen({
       {view === "play" && paceCue !== null && (
         <div className="pace-drop" aria-live="polite">
           <span>Timeout</span>
-          <strong>{paceCue}s</strong>
+          <strong>{formatWindowLabel(paceCue)}</strong>
+        </div>
+      )}
+
+      {view === "play" && endlessCue && (
+        <div className="pace-drop is-endless" aria-live="polite">
+          <span>endless</span>
+          <strong>bonus</strong>
         </div>
       )}
     </div>

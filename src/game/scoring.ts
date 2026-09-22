@@ -15,10 +15,31 @@ export function formatPct(accuracy: number): string {
 
 /**
  * Score = accuracy² × 10,000 − 2 × seconds.
- * Accuracy is correct / this run's total (60 daily, 20 practice, or debugRows).
- * Time is wall-clock seconds for that run. Daily and practice PBs stay separate.
+ * Accuracy is correct / scored rows (kept endless rows included; the terminating miss is not).
+ * Daily time/score use the base-board clock only — endless does not make a 100% look slower.
  */
 export const SCORE_NOTE = "score = acc² × 10,000 − 2 × seconds";
+
+/** Endless unlocked: perfect daily board (`enteredBonus`) or kept bonus rows. */
+export function bonusUnlocked(result: {
+  mode: RunResult["mode"];
+  enteredBonus?: boolean;
+  bonusRows?: number;
+  baseTotal?: number;
+  total: number;
+  accuracy: number;
+  correctMask: boolean[];
+}): boolean {
+  if (result.mode !== "daily") return false;
+  if (result.enteredBonus) return true;
+  if ((result.bonusRows ?? 0) > 0) return true;
+  const base = result.baseTotal ?? result.total;
+  if (base <= 0) return false;
+  if (result.correctMask.length >= base) {
+    return result.correctMask.slice(0, base).every(Boolean);
+  }
+  return result.accuracy === 1 && result.total === base;
+}
 
 export function computeScore(correct: number, total: number, durationMs: number): number {
   if (total <= 0) return 0;
@@ -32,9 +53,16 @@ export function analyzeRun(
   answers: AnswerEvent[],
   startedAt: number,
   endedAt: number,
+  opts?: { baseTotal?: number; dailyEndedAt?: number | null },
 ): RunResult {
   const total = puzzle.questions.length;
-  const durationMs = Math.max(0, endedAt - startedAt);
+  const baseTotal = opts?.baseTotal ?? total;
+  const fullDuration = Math.max(0, endedAt - startedAt);
+  const dailyEndedAt = opts?.dailyEndedAt ?? null;
+  const dailyDurationMs = dailyEndedAt != null ? Math.max(0, dailyEndedAt - startedAt) : fullDuration;
+  const bonusDurationMs = dailyEndedAt != null ? Math.max(0, endedAt - dailyEndedAt) : 0;
+  const bonusRows = Math.max(0, total - baseTotal);
+  const durationMs = dailyDurationMs;
   const correctMask = puzzle.questions.map((q, i) => answers[i]?.letter === q.answer);
 
   let correct = 0;
@@ -68,7 +96,7 @@ export function analyzeRun(
   let prev = startedAt;
   for (let i = 0; i < total; i++) {
     const ev = answers[i];
-    const windowMs = rowWindowMs(i, puzzle.mode);
+    const windowMs = rowWindowMs(i, puzzle.mode, baseTotal);
     const at = ev?.at ?? prev + windowMs;
     const raw = Math.max(0, at - prev);
     intervals.push(ev?.letter == null ? windowMs : raw);
@@ -76,9 +104,9 @@ export function analyzeRun(
   }
   const avgMs =
     intervals.length === 0
-      ? durationMs
+      ? fullDuration
       : intervals.reduce((a, b) => a + b, 0) / intervals.length;
-  const qpm = durationMs > 0 ? (total / durationMs) * 60000 : 0;
+  const qpm = fullDuration > 0 ? (total / fullDuration) * 60000 : 0;
 
   const perLetter = LETTERS.map((letter, idx) => {
     const number = puzzle.key.numbers[idx]!;
@@ -120,6 +148,11 @@ export function analyzeRun(
     seed: puzzle.seed,
     perLetter,
     missedNumbers,
+    baseTotal,
+    bonusRows,
+    dailyDurationMs,
+    bonusDurationMs,
+    enteredBonus: dailyEndedAt != null,
   };
 }
 

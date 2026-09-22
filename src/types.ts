@@ -27,7 +27,10 @@ export interface Puzzle {
   mode: Mode;
   seed: number;
   key: KeyMap;
+  /** Base board (60 daily / 20 practice / debugRows). Never includes endless. */
   questions: Question[];
+  /** Pregenerated endless rows (daily only). Same continued seed as `questions`. */
+  bonus: Question[];
 }
 
 export interface AnswerEvent {
@@ -57,6 +60,16 @@ export interface RunResult {
   seed?: number;
   perLetter: LetterStat[];
   missedNumbers: NumberStat[];
+  /** Base board length (60, 20, or debugRows). */
+  baseTotal?: number;
+  /** Endless rows kept after a perfect daily. Terminating miss is not counted. */
+  bonusRows?: number;
+  /** Wall-clock of the base board only. Hero `durationMs` matches this when bonus ran. */
+  dailyDurationMs?: number;
+  /** Wall-clock from entering endless until the run ended. */
+  bonusDurationMs?: number;
+  /** True if the daily 60 was perfect and endless started (even if bonus is 0). */
+  enteredBonus?: boolean;
 }
 
 export interface LetterStat {
@@ -78,6 +91,8 @@ export interface PersonalBests {
   bestAccuracy: number | null;
   bestTimeMs: number | null;
   bestTimeDate: string | null;
+  /** Longest daily endless (rows after the 60). Practice ignores this. */
+  bestBonusRows?: number | null;
 }
 
 export interface StoredState {

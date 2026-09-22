@@ -8,6 +8,8 @@ interface Props {
   activeIndex: number;
   variant: "hud" | "hero";
   tapeRef?: Ref<HTMLDivElement>;
+  /** First index of endless (base board length). Gold instead of teal. */
+  bonusFrom?: number;
 }
 
 export function DotGraph({
@@ -18,15 +20,19 @@ export function DotGraph({
   activeIndex,
   variant,
   tapeRef,
+  bonusFrom,
 }: Props) {
   const dots = [];
   for (let i = 0; i < count; i++) {
     const revealed = revealedThrough >= i;
+    const isBonus = bonusFrom != null && i >= bonusFrom;
     const ok = revealed && Boolean(mask?.[i]);
-    const bad = revealed && mask !== null && !mask[i];
+    const bad = !isBonus && revealed && mask !== null && !mask[i];
     const cls = [
       filled[i] ? "filled" : "",
-      ok ? "ok" : "",
+      isBonus && ok ? "bonus" : "",
+      isBonus && !ok ? "bonus-wait" : "",
+      !isBonus && ok ? "ok" : "",
       bad ? "bad" : "",
       i === activeIndex ? "here" : "",
     ]
@@ -34,7 +40,7 @@ export function DotGraph({
       .join(" ");
     const title =
       variant === "hero" && revealed
-        ? `Q${i + 1} ${ok ? "correct" : "wrong"}`
+        ? `Q${i + 1} ${isBonus ? "bonus" : ok ? "correct" : "wrong"}`
         : variant === "hero"
           ? `Q${i + 1}`
           : undefined;

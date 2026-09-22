@@ -1,6 +1,6 @@
 import { type ReactNode, useEffect, useRef, useState } from "react";
 import { flushSync } from "react-dom";
-import { formatDuration, formatPct, SCORE_NOTE } from "../game/scoring.ts";
+import { bonusUnlocked, formatDuration, formatPct, SCORE_NOTE } from "../game/scoring.ts";
 import { captureNodePng, copyOrSavePng, waitForTriviaPainted } from "../game/capture.ts";
 import { triviaChime } from "../game/audio.ts";
 import { prefersReducedMotion } from "../game/reveal.ts";
@@ -65,21 +65,28 @@ export function ResultsHero({
   triviaRevealed?: boolean;
   children: ReactNode;
 }) {
+  const hasBonus = bonusUnlocked(result);
   return (
     <div className={`hero-band ${arriving ? "is-arriving" : ""}`}>
-      <div className="hero-stats-stack">
+      <div className={`hero-stats-stack ${hasBonus ? "has-bonus" : ""}`}>
         <div className="hero-stat">
           <div className="label">acc</div>
           <div className="value">{formatPct(result.accuracy)}</div>
         </div>
         <div className="hero-stat">
-          <div className="label">time</div>
+          <div className="label">{hasBonus ? "daily time" : "time"}</div>
           <div className="value">{formatDuration(result.durationMs)}</div>
         </div>
         <div className="hero-stat">
-          <div className="label">score</div>
+          <div className="label">{hasBonus ? "daily score" : "score"}</div>
           <div className="value">{result.score}</div>
         </div>
+        {hasBonus && (
+          <div className="hero-stat is-bonus">
+            <div className="label">bonus</div>
+            <div className="value">{result.bonusRows}</div>
+          </div>
+        )}
       </div>
       <div className="hero-graph">{children}</div>
       <TriviaLine result={result} revealed={triviaRevealed} />
@@ -104,6 +111,9 @@ export function ResultsScreen({
   const firstMiss =
     result.firstMistake === null ? "none" : `question ${result.firstMistake}`;
   const isDaily = result.mode === "daily";
+  const hasBonus = bonusUnlocked(result);
+  const baseTotal = result.baseTotal ?? result.total;
+  const bestBonus = Math.max(bests.bestBonusRows ?? 0, result.bonusRows ?? 0);
   const filled = result.correctMask.map(() => true);
   const filename = `precisley-${isDaily ? result.date : "practice"}.png`;
 
@@ -163,6 +173,7 @@ export function ResultsScreen({
       revealedThrough={result.total - 1}
       activeIndex={-1}
       variant="hero"
+      bonusFrom={(result.bonusRows ?? 0) > 0 ? baseTotal : undefined}
     />
   );
 
@@ -212,6 +223,18 @@ export function ResultsScreen({
               <div className="label">first mistake</div>
               <div className="value">{firstMiss}</div>
             </div>
+            {hasBonus && (
+              <>
+                <div className="stat">
+                  <div className="label">bonus time</div>
+                  <div className="value">{formatDuration(result.bonusDurationMs ?? 0)}</div>
+                </div>
+                <div className="stat">
+                  <div className="label">bonus rows</div>
+                  <div className="value">{result.bonusRows}</div>
+                </div>
+              </>
+            )}
           </div>
 
           <div className="stat-grid extra-stats pb-stats">
@@ -226,11 +249,17 @@ export function ResultsScreen({
               </div>
             </div>
             <div className="stat">
-              <div className="label">{isDaily ? "best time (100%)" : "best practice time"}</div>
+              <div className="label">{isDaily ? "best daily time (100%)" : "best practice time"}</div>
               <div className="value">
                 {bests.bestTimeMs === null ? "—" : formatDuration(bests.bestTimeMs)}
               </div>
             </div>
+            {hasBonus && (
+              <div className="stat">
+                <div className="label">best bonus</div>
+                <div className="value">{bestBonus}</div>
+              </div>
+            )}
           </div>
         </div>
       </div>

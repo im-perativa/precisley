@@ -24,6 +24,8 @@ export default function App() {
   const [practiceBests, setPracticeBests] = useState(initial.practiceBests);
   const [completedDays, setCompletedDays] = useState(initial.completedDays);
   const [session, setSession] = useState(0);
+  const [skipToBonus, setSkipToBonus] = useState(false);
+  const [persistRuns, setPersistRuns] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
@@ -43,15 +45,20 @@ export default function App() {
     setResult(getDailyResult(today));
   }, [today, phase]);
 
-  const persist = useCallback((run: RunResult) => {
-    const state = recordRun(run);
-    setBests(state.bests);
-    setPracticeBests(state.practiceBests);
-    setCompletedDays(state.completedDays);
-    setResult(run);
-  }, []);
+  const persist = useCallback(
+    (run: RunResult) => {
+      const state = recordRun(run, { persistDaily: persistRuns });
+      setBests(state.bests);
+      setPracticeBests(state.practiceBests);
+      setCompletedDays(state.completedDays);
+      if (persistRuns) setResult(run);
+    },
+    [persistRuns],
+  );
 
   function start(mode: Mode) {
+    setSkipToBonus(false);
+    setPersistRuns(true);
     if (mode === "daily") {
       if (!clockReady) return;
       const existing = getDailyResult(today);
@@ -68,6 +75,16 @@ export default function App() {
     setPhase("playing");
   }
 
+  function startEndlessDev() {
+    if (!import.meta.env.DEV || !clockReady) return;
+    const existing = getDailyResult(today);
+    setPuzzle(dailyPuzzle(today, rowCount("daily")));
+    setSkipToBonus(true);
+    setPersistRuns(!existing);
+    setSession((n) => n + 1);
+    setPhase("playing");
+  }
+
   const storedDaily = clockReady ? getDailyResult(today) : null;
 
   return (
@@ -79,6 +96,7 @@ export default function App() {
           dailyDone={Boolean(storedDaily)}
           debugRows={debugRows}
           onStart={start}
+          onStartEndlessDev={startEndlessDev}
           onViewResults={() => {
             const existing = getDailyResult(today);
             if (existing) {
@@ -92,6 +110,7 @@ export default function App() {
         <GameScreen
           key={session}
           puzzle={puzzle}
+          skipToBonus={skipToBonus}
           onRunComplete={persist}
           bests={bestsFor(puzzle.mode, bests, practiceBests)}
           completedDays={completedDays}
