@@ -16,7 +16,14 @@ import { analyzeRun, formatDuration } from "../game/scoring.ts";
 import { endlessEnter, keyClick, paceDrop, tone, unlockAudio } from "../game/audio.ts";
 import { advanceStreak, prefersReducedMotion, tripDelay, type HeatKind } from "../game/reveal.ts";
 import { cancelPlayScroll, scrollPlayRow, scrollTripRow } from "../game/scroll.ts";
-import { formatWindowLabel, rowWindowMs, rowWindowSec } from "../game/timing.ts";
+import {
+  blockWindowSec,
+  formatWindowLabel,
+  nextTightness,
+  rowWindowMs,
+  rowWindowSec,
+} from "../game/timing.ts";
+import { puzzleNumber } from "../game/utcDate.ts";
 
 interface Props {
   puzzle: Puzzle;
@@ -69,6 +76,7 @@ export function GameScreen({
   const lockInRef = useRef<(letter: Letter | null) => void>(() => {});
   const dailyEndedAt = useRef<number | null>(null);
   const scoredRef = useRef({ qs: puzzle.questions, n: baseTotal });
+  const tightnessRef = useRef(0);
 
   const [board, setBoard] = useState<Question[]>(puzzle.questions);
   const [current, setCurrent] = useState(skipIn ? baseTotal : 0);
@@ -87,6 +95,7 @@ export function GameScreen({
   const [paceCue, setPaceCue] = useState<number | null>(null);
   const [endlessCue, setEndlessCue] = useState(skipIn);
   const [inBonus, setInBonus] = useState(skipIn);
+  const [tightness, setTightness] = useState(0);
 
   useEffect(() => {
     unlockAudio();
@@ -129,13 +138,13 @@ export function GameScreen({
   const startRowClock = () => {
     stopRowClock();
     rowStartedAt.current = performance.now();
+    const i = currentRef.current;
+    const windowMs = rowWindowMs(i, puzzle.mode, baseTotal, tightnessRef.current);
     paintBar(1);
     const tick = (now: number) => {
       if (viewRef.current !== "play") return;
-      const i = currentRef.current;
       if (i >= questionsRef.current.length || answersRef.current[i]) return;
       const elapsedMs = now - rowStartedAt.current;
-      const windowMs = rowWindowMs(i, puzzle.mode, baseTotal);
       paintBar(1 - elapsedMs / windowMs);
       if (elapsedMs >= windowMs) {
         lockInRef.current(null);
@@ -285,6 +294,8 @@ export function GameScreen({
   const enterBonus = useCallback(() => {
     const at = performance.now();
     dailyEndedAt.current = at;
+    tightnessRef.current = 0;
+    setTightness(0);
     setInBonus(true);
     setEndlessCue(true);
     setElapsed(Math.max(0, at - startedAt.current));
@@ -340,6 +351,9 @@ export function GameScreen({
       currentRef.current = nextIndex;
       setCurrent(nextIndex);
 
+      const prevTight = tightnessRef.current;
+      const nextTight = nextTightness(prevTight, correct);
+
       if (puzzle.mode === "daily" && nextIndex === baseTotal) {
         const perfect = puzzle.questions.every((qq, idx) => answersRef.current[idx]?.letter === qq.answer);
         if (perfect) {
@@ -358,13 +372,20 @@ export function GameScreen({
         return;
       }
 
+      tightnessRef.current = nextTight;
+      setTightness(nextTight);
+
       if (puzzle.mode === "daily" && nextIndex < baseTotal) {
-        const nextSec = rowWindowSec(nextIndex, "daily", baseTotal);
-        const prevSec = rowWindowSec(i, "daily", baseTotal);
-        if (nextSec < prevSec) {
-          unlockAudio();
-          paceDrop();
-          setPaceCue(nextSec);
+        const prevBlock = blockWindowSec(i, "daily", baseTotal);
+        const nextBlock = blockWindowSec(nextIndex, "daily", baseTotal);
+        if (nextBlock < prevBlock) {
+          const prevSec = rowWindowSec(i, "daily", baseTotal, prevTight);
+          const nextSec = rowWindowSec(nextIndex, "daily", baseTotal, nextTight);
+          if (nextSec < prevSec) {
+            unlockAudio();
+            paceDrop();
+            setPaceCue(nextSec);
+          }
         }
       }
 
@@ -452,7 +473,7 @@ export function GameScreen({
   const mask = result?.correctMask ?? null;
   const graphCount = view === "play" ? board.length : scoredN;
   const revealedThrough = view === "results" ? scoredN - 1 : view === "play" ? -1 : tripAt;
-  const windowSec = rowWindowSec(current, puzzle.mode, baseTotal);
+  const windowSec = rowWindowSec(current, puzzle.mode, baseTotal, tightness);
   const bonusFrom =
     puzzle.mode !== "daily"
       ? undefined
@@ -524,6 +545,7 @@ export function GameScreen({
                 <>
                   <span>{puzzle.date}</span>
                   <span>UTC</span>
+                  <span>#{puzzleNumber(puzzle.date)}</span>
                 </>
               ) : (
                 <span>practice</span>
@@ -536,12 +558,21 @@ export function GameScreen({
               {formatDuration(frozenTime)}
             </div>
             <div className="progress-label">
-              {puzzle.mode === "daily" && view === "play" && (
+              {view === "play" && (
                 <span
                   className={`pace-chip ${paceCue !== null ? "is-drop" : ""} ${inBonus ? "is-bonus" : ""}`}
-                  aria-label={inBonus ? "Endless" : `Row timer ${windowSec} seconds`}
+                  aria-label={inBonus ? `Endless row timer ${windowSec} seconds` : `Row timer ${windowSec} seconds`}
                 >
-                  {inBonus ? "∞" : formatWindowLabel(windowSec)}
+                  {inBonus ? (
+                    <>
+                      <span className="pace-inf" aria-hidden>
+                        ∞
+                      </span>
+                      {formatWindowLabel(windowSec)}
+                    </>
+                  ) : (
+                    formatWindowLabel(windowSec)
+                  )}
                 </span>
               )}
               <span>{progressText}</span>

@@ -2,7 +2,7 @@
 
 A daily attention game. Five distinct digits from **0–9** map to A–E. Each question shows four of those digits; pick the letter of the missing one.
 
-Everyone gets the same puzzle for a given **UTC** calendar day. After you finish, a path replay walks every row and reveals correctness. Daily rows start at ten seconds and tighten every ten rows (10, 8, 7, 6, 5, 4). A perfect daily unlocks **endless**: 4 seconds per row, −0.1s every ten bonus rows, floor 2s, until the first miss. Practice stays at ten seconds. Answers lock as you go — no edits, no peeking mid-run.
+Everyone gets the same puzzle for a given **UTC** calendar day (numbered from 1 September 2026). After you finish, a path replay walks every row and reveals correctness. Daily rows start at ten seconds and drop every ten rows (10, 8, 7, 6, 5, 4). Each correct answer also tightens the **next** window by 0.5s; a miss loosens 1s, never above that block’s max, down to a 2.5s floor — leftover time is for looking ahead. A perfect daily unlocks **endless**: tightness resets, 4 seconds per row, −0.1s every ten bonus rows, 2s floor, until the first miss. Practice uses the same combo tightness from a 10s base (no ladder, 2.5s floor). Answers lock as you go — no edits, no peeking mid-run.
 
 There is **no database**. The daily board is a pure function of `YYYY-MM-DD` plus a seeded RNG. Personal stats stay in `localStorage`. Production has a tiny Cloudflare Worker route, `/api/utc`, that only returns today’s UTC date from the Worker clock.
 
@@ -46,7 +46,7 @@ The client fetches same-origin `/api/utc` (Cloudflare Worker clock in production
 - **Desktop:** click A–E, or press `A`–`E` / `1`–`5`.
 - **Mobile:** tap the letter buttons. The key and timer stay sticky.
 - Only the current row is interactive. Previous answers are locked.
-- Daily: **10 / 8 / 7 / 6 / 5 / 4** seconds per ten rows. A perfect board unlocks **endless** (4s, −0.1s every ten bonus rows, floor 2s, first miss ends it). Practice stays at **10 seconds**. Miss the window and the row stays blank — counted as a miss (except the endless stopper, which is dropped so the card stays 100%).
+- Daily: **10 / 8 / 7 / 6 / 5 / 4** seconds per ten rows, plus **−0.5s per correct** (**+1s** on a miss, never above that block) down to **2.5s**. Leftover time is for reading ahead. A perfect board unlocks **endless** (tightness resets, 4s, −0.1s every ten bonus rows, floor **2s**, first miss ends it). Practice uses combo tightness from a **10s** base, no ladder, **2.5s** floor. Miss the window and the row stays blank — counted as a miss (except the endless stopper, which is dropped so the card stays 100%).
 - Correctness is hidden until the end. Then the path reveal runs (Skip or Escape to jump to stats).
 
 ## Deploy (Cloudflare)

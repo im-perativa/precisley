@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import type { Mode } from "../types.ts";
 import { unlockAudio } from "../game/audio.ts";
+import { puzzleNumber } from "../game/utcDate.ts";
 import { BrandMark } from "./BrandMark.tsx";
 import { DemoPlay } from "./DemoPlay.tsx";
 
@@ -39,6 +40,7 @@ export function StartScreen({
         <BrandMark />
         <div className="hud-meta">
           <span>{clockReady ? `${date} UTC` : "syncing UTC…"}</span>
+          {clockReady && <span>#{puzzleNumber(date)}</span>}
           {debugRows !== null && <span>debug {debugRows} rows</span>}
         </div>
       </header>
@@ -58,7 +60,9 @@ export function StartScreen({
             Each row hides one digit. Pick the letter associated with the missing digit, be <strong>precise</strong>.
           </p>
           <p>
-            Same 60-row puzzle for everyone, every day. Timeout decreases every 10 rows so <strong>stay sharp</strong>.
+            Same 60-row puzzle for everyone, every day. Timeout decreases every 10 rows or correct answers so <strong>stay sharp</strong>.
+          </p>
+          <p>
             A perfect board opens <strong className="lede-endless">bonus endless</strong> mode.
           </p>
           <p className="hint">

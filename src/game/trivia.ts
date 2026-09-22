@@ -24,6 +24,7 @@ export interface TriviaLine {
  *   correct * 100 >= min * total
  * so every k/60 daily (and k/20 practice) score lands in exactly one band.
  * Daily 60-row correct counts are noted on each band.
+ * 60 through 54 out of 60 each get their own band so a single miss changes the line.
  */
 export const TRIVIA_BANDS: TriviaBand[] = [
   {
@@ -36,74 +37,114 @@ export const TRIVIA_BANDS: TriviaBand[] = [
       "a metronome",
       "a diamond cutter",
       "an atomic clock",
-      "a Japanese tea master",
-      "a concert tuner",
-      "a calligrapher",
       "a Swiss movement",
       "a neurosurgeon",
-      "a chess grandmaster",
       "a NASA guidance computer",
       "an air-traffic controller",
       "an elite sniper",
-      "a Formula 1 driver",
     ],
   },
   {
-    min: 95,
+    min: 98,
     max: 99,
-    // daily: 57–59/60
+    // daily: 59/60
     pool: [
+      "a chess grandmaster",
+      "a Formula 1 driver",
       "a jeweler",
       "a concert pianist",
-      "a laser level",
       "an origami master",
       "a violin maker",
-      "a sushi chef",
-      "a proofreader",
-      "a satellite dish",
-      "a fountain-pen nib",
       "a tightrope walker",
-      "a lab technician",
-      "a cartographer",
-      "a ballet dancer",
       "a CNC mill",
+      "a fighter pilot",
+      "a laser interferometer",
+    ],
+  },
+  {
+    min: 96,
+    max: 97,
+    // daily: 58/60
+    pool: [
+      "a sushi chef",
+      "a fountain-pen nib",
+      "a proofreader",
+      "a ballet dancer",
       "a film editor",
       "a pharmacist",
       "a pool shark",
       "a transcriptionist",
-      "a fighter pilot",
+      "a laser level",
+      "a watch oiler",
+      "a museum conservator",
     ],
   },
   {
-    min: 90,
-    max: 94,
-    // daily: 54–56/60
+    min: 95,
+    max: 95,
+    // daily: 57/60
     pool: [
+      "a lab technician",
+      "a cartographer",
+      "a bomb-disposal tech",
+      "a Formula 1 pit crew",
+      "an Olympic diver",
       "a Swiss train",
+      "a radio astronomer",
+      "a court stenographer",
+      "a pastry chef's scale",
+      "a lens grinder",
+    ],
+  },
+  {
+    min: 93,
+    max: 94,
+    // daily: 56/60
+    pool: [
       "a lab pipette",
       "a falcon",
       "a typesetter",
       "a pastry chef",
       "a millwright",
-      "a rugby place-kicker",
       "a surveyor's stake",
       "a hummingbird",
       "an archer",
-      "a bomb-disposal tech",
-      "a Formula 1 pit crew",
-      "a data engineer",
-      "a statistician",
-      "a court stenographer",
-      "a mountain goat",
       "a safecracker",
       "a tailor's chalk",
+    ],
+  },
+  {
+    min: 91,
+    max: 92,
+    // daily: 55/60
+    pool: [
+      "a rugby place-kicker",
+      "a data engineer",
+      "a statistician",
+      "a mountain goat",
       "a crane operator",
       "a spider on silk",
       "a drill sergeant's stopwatch",
       "a marksman's rest",
       "a cat on a fence",
-      "an Olympic diver",
-      "a radio astronomer",
+      "a spirit level that's been dropped once",
+    ],
+  },
+  {
+    min: 90,
+    max: 90,
+    // daily: 54/60
+    pool: [
+      "a Swiss train twelve seconds late",
+      "a concert A two cents sharp",
+      "a diamond with a hairline",
+      "a surgeon after a long shift",
+      "a metronome that skipped once",
+      "a grandmaster's second board",
+      "a GPS with one bird in the way",
+      "a calligrapher's almost-closed loop",
+      "a tea kettle a degree cool",
+      "an atomic clock after a power blink",
     ],
   },
   {

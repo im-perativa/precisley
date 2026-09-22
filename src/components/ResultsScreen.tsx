@@ -4,6 +4,7 @@ import { bonusUnlocked, formatDuration, formatPct, SCORE_NOTE } from "../game/sc
 import { captureNodePng, copyOrSavePng, waitForTriviaPainted } from "../game/capture.ts";
 import { triviaChime } from "../game/audio.ts";
 import { prefersReducedMotion } from "../game/reveal.ts";
+import { formatCountdown, msUntilNextUtcDay, puzzleNumber } from "../game/utcDate.ts";
 import { BrandMark } from "./BrandMark.tsx";
 import { DotGraph } from "./DotGraph.tsx";
 import { pickTrivia } from "../game/trivia.ts";
@@ -91,6 +92,23 @@ export function ResultsHero({
       <div className="hero-graph">{children}</div>
       <TriviaLine result={result} revealed={triviaRevealed} />
     </div>
+  );
+}
+
+function NextPuzzleCountdown() {
+  const [label, setLabel] = useState(() => formatCountdown(msUntilNextUtcDay()));
+
+  useEffect(() => {
+    const tick = () => setLabel(formatCountdown(msUntilNextUtcDay()));
+    tick();
+    const id = window.setInterval(tick, 250);
+    return () => window.clearInterval(id);
+  }, []);
+
+  return (
+    <p className="next-puzzle">
+      next puzzle in <strong>{label}</strong>
+    </p>
   );
 }
 
@@ -185,6 +203,7 @@ export function ResultsScreen({
             <BrandMark />
             <div className="hud-meta">
               <span>{isDaily ? `${result.date} UTC` : "practice"}</span>
+              {isDaily && <span>#{puzzleNumber(result.date)}</span>}
             </div>
           </div>
 
@@ -265,6 +284,7 @@ export function ResultsScreen({
       </div>
 
       <div className="results-actions actions" data-capture="skip">
+        {isDaily && <NextPuzzleCountdown />}
         <button
           className="btn btn-primary"
           type="button"

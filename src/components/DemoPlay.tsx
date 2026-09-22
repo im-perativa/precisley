@@ -17,7 +17,7 @@ function demoSeed(): number {
 /**
  * Correct counts out of 10, ordered for contrast so consecutive loops
  * land in different trivia bands (100% → 10% → 80% → 0% …).
- * 10 rows can't hit 95–99%; every other trivia band is covered.
+ * 10 rows skip the 91–99 daily-only bands; 100%, 90%, and below still showcase.
  */
 const SHOWCASE_CORRECT = [10, 1, 8, 0, 9, 2, 7, 4, 6, 5, 3];
 

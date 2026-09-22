@@ -172,6 +172,21 @@ a:focus-visible {
   padding: 8px 14px;
 }
 
+.next-puzzle {
+  flex: 1 0 100%;
+  margin: 0 0 2px;
+  color: var(--sub);
+  font-size: 0.85rem;
+  letter-spacing: 0.04em;
+}
+
+.next-puzzle strong {
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.08em;
+  font-weight: 500;
+}
+
 .brand {
   font-weight: 400;
   letter-spacing: -0.04em;
@@ -432,6 +447,9 @@ a:focus-visible {
   padding: 1px 8px;
   border-radius: 999px;
   line-height: 1.35;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
 }
 
 .pace-chip.is-drop {
@@ -442,10 +460,12 @@ a:focus-visible {
 .pace-chip.is-bonus {
   color: var(--bonus);
   border-color: color-mix(in srgb, var(--bonus) 50%, transparent);
+}
+
+.pace-inf {
   font-size: 1.05rem;
   letter-spacing: 0;
   line-height: 1;
-  padding: 2px 9px 3px;
   font-variant-numeric: normal;
 }
 
