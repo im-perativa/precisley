@@ -42,13 +42,13 @@ export function StartScreen({ date, dailyDone, debugRows, onStart, onViewResults
 
         <div className="lede">
           <p>
-            Five digits mapped to letter <strong>A–E</strong>.
+            <strong>Five</strong> digits mapped to letter <strong>A–E</strong>.
           </p>
           <p>
             Each row hides one digit. Pick the letter associated with the missing digit. Be <strong>Precise</strong>.
           </p>
           <p>
-            Same 60-row puzzle for everyone, every day. Practice is 20 if you want another go.
+            Same 60-row puzzle for everyone, every day. Try practice for another go.
           </p>
           <p className="hint">
             Desktop: Click the answer button, or press A–E / 1–5 on keyboard. Mobile: Tap the letters.

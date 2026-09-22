@@ -8,30 +8,21 @@ import { DotGraph } from "./DotGraph.tsx";
 import { TriviaLine } from "./ResultsScreen.tsx";
 import type { RunResult } from "../types.ts";
 
-type BandId = "perfect" | "high" | "mid" | "messy" | "disaster";
-
-const BANDS: { id: BandId; min: number; max: number; weight: number }[] = [
-  { id: "perfect", min: 10, max: 10, weight: 18 },
-  { id: "high", min: 8, max: 9, weight: 24 },
-  { id: "mid", min: 6, max: 7, weight: 22 },
-  { id: "messy", min: 3, max: 5, weight: 20 },
-  { id: "disaster", min: 0, max: 2, weight: 16 },
-];
-
 function demoSeed(): number {
   const buf = new Uint32Array(1);
   crypto.getRandomValues(buf);
   return (buf[0] || Math.floor(Math.random() * 0xffffffff) || 1) >>> 0;
 }
 
-function pickCorrectCount(): number {
-  const totalW = BANDS.reduce((s, b) => s + b.weight, 0);
-  let roll = Math.random() * totalW;
-  const band = BANDS.find((b) => {
-    roll -= b.weight;
-    return roll < 0;
-  }) ?? BANDS[2]!;
-  return band.min + Math.floor(Math.random() * (band.max - band.min + 1));
+/**
+ * Correct counts out of 10, ordered for contrast so consecutive loops
+ * land in different trivia bands (100% → 10% → 80% → 0% …).
+ * 10 rows can't hit 95–99%; every other trivia band is covered.
+ */
+const SHOWCASE_CORRECT = [10, 1, 8, 0, 9, 2, 7, 4, 6, 5, 3];
+
+function nextCorrectCount(step: number): number {
+  return SHOWCASE_CORRECT[step % SHOWCASE_CORRECT.length]!;
 }
 
 function wrongLetter(answer: Letter): Letter {
@@ -40,19 +31,18 @@ function wrongLetter(answer: Letter): Letter {
   return LETTERS[(idx + offset) % LETTERS.length]!;
 }
 
-function makeDemoRun(): { puzzle: Puzzle; picks: Letter[]; result: RunResult } {
+function makeDemoRun(correctCount: number): { puzzle: Puzzle; picks: Letter[]; result: RunResult } {
   const puzzle = demoPuzzle(demoSeed());
   const n = puzzle.questions.length;
-  const correctN = Math.max(0, Math.min(n, pickCorrectCount()));
-  const order = Array.from({ length: n }, (_, i) => i);
+  const correctN = Math.max(0, Math.min(n, correctCount));
+  const flags = Array.from({ length: n }, (_, i) => i < correctN);
   for (let i = n - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
-    const tmp = order[i]!;
-    order[i] = order[j]!;
-    order[j] = tmp;
+    const tmp = flags[i]!;
+    flags[i] = flags[j]!;
+    flags[j] = tmp;
   }
-  const ok = new Set(order.slice(0, correctN));
-  const picks = puzzle.questions.map((q, i) => (ok.has(i) ? q.answer : wrongLetter(q.answer)));
+  const picks = puzzle.questions.map((q, i) => (flags[i] ? q.answer : wrongLetter(q.answer)));
   const answers = picks.map((letter, i) => ({ letter, at: (i + 1) * 480 }));
   const result = analyzeRun(puzzle, answers, 0, n * 480);
   return { puzzle, picks, result };
@@ -71,6 +61,7 @@ function useReducedMotion(): boolean {
 
 export function DemoPlay() {
   const reduce = useReducedMotion();
+  const showcaseStep = useRef(0);
   const [run, setRun] = useState(() =>
     reduce
       ? (() => {
@@ -85,7 +76,7 @@ export function DemoPlay() {
             result: analyzeRun(puzzle, answers, 0, DEMO_ROWS * 480),
           };
         })()
-      : makeDemoRun(),
+      : makeDemoRun(SHOWCASE_CORRECT[0]!),
   );
   const { puzzle, picks, result } = run;
   const total = puzzle.questions.length;
@@ -133,7 +124,7 @@ export function DemoPlay() {
         }
         const sound = liveSound.current;
 
-        const next = makeDemoRun();
+        const next = makeDemoRun(nextCorrectCount(showcaseStep.current));
         setRun(next);
         setPhase("play");
         setCurrent(0);
@@ -186,6 +177,8 @@ export function DemoPlay() {
         setTriviaOn(true);
         if (sound) triviaChime();
         await wait(1800 + Math.floor(Math.random() * 700));
+        if (cancelled) return;
+        showcaseStep.current += 1;
       }
     }
 

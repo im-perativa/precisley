@@ -1140,6 +1140,11 @@ a:focus-visible {
   overflow: hidden;
   box-shadow: none;
   filter: none;
+  font-family: var(--font);
+  font-variant-numeric: normal;
+  font-synthesis: none;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
 }
 
 .demo-kicker {
@@ -1171,7 +1176,8 @@ a:focus-visible {
   color: var(--accent);
   font-size: 0.95rem;
   font-weight: 600;
-  font-variant-numeric: tabular-nums;
+  font-family: var(--font);
+  font-variant-numeric: normal;
 }
 
 .demo-board {
@@ -1185,6 +1191,7 @@ a:focus-visible {
   padding: 1px 4px;
   border-radius: 6px;
   border-bottom: none;
+  align-items: center;
 }
 
 .demo .q-row.is-future {
@@ -1231,11 +1238,17 @@ a:focus-visible {
 
 .demo .no {
   font-size: 0.65rem;
+  font-family: var(--font);
+  text-transform: none;
+  letter-spacing: 0;
 }
 
 .demo .digits {
   font-size: 0.78rem;
   gap: 5px;
+  font-family: var(--font);
+  font-variant-numeric: normal;
+  font-weight: 400;
 }
 
 .demo .q-row.is-current .digits {
@@ -1245,9 +1258,19 @@ a:focus-visible {
 .demo .choice {
   width: 20px;
   height: 20px;
-  font-size: 0.58rem;
+  min-width: 20px;
+  min-height: 20px;
+  max-width: 20px;
+  max-height: 20px;
+  flex: none;
+  font-size: 0.62rem;
+  font-family: var(--font);
+  font-weight: 500;
+  line-height: 1;
   border-radius: 50%;
   cursor: default;
+  align-self: center;
+  justify-self: center;
 }
 
 .demo .q-row.is-current .choice {
@@ -1546,6 +1569,7 @@ a:focus-visible {
     display: grid;
     grid-template-columns: 12px 22px minmax(56px, 1fr) repeat(5, 22px);
     grid-template-areas: none;
+    align-items: center;
     padding: 1px 4px;
     background: transparent;
     border: none;
@@ -1564,14 +1588,23 @@ a:focus-visible {
     grid-area: auto;
   }
 
+  .demo .no {
+    text-transform: none;
+    letter-spacing: 0;
+    font-size: 0.65rem;
+  }
+
   .demo .choices {
     display: contents;
   }
 
-  .demo .digits {
+  .demo .digits,
+  .demo .q-row.is-current .digits {
     font-size: 0.78rem;
     gap: 5px;
     font-weight: 400;
+    font-family: var(--font);
+    font-variant-numeric: normal;
   }
 
   .demo .q-row.is-current .digits {
@@ -1579,19 +1612,32 @@ a:focus-visible {
   }
 
   .demo .choice,
-  .demo .q-row.is-current .choice {
+  .demo .q-row.is-current .choice,
+  .demo .q-row.is-future .choice {
     flex: none;
     width: 20px;
     height: 20px;
+    min-width: 20px;
     min-height: 20px;
+    max-width: 20px;
+    max-height: 20px;
     border-radius: 50%;
-    font-size: 0.58rem;
+    font-size: 0.62rem;
+    font-family: var(--font);
+    font-weight: 500;
+    line-height: 1;
+    align-self: center;
+    justify-self: center;
   }
 
   .demo .q-row.is-current .choice {
     width: 24px;
     height: 24px;
+    min-width: 24px;
     min-height: 24px;
+    max-width: 24px;
+    max-height: 24px;
+    font-size: 0.68rem;
   }
 }
 
