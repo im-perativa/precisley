@@ -379,13 +379,9 @@ export function GameScreen({
         const prevBlock = blockWindowSec(i, "daily", baseTotal);
         const nextBlock = blockWindowSec(nextIndex, "daily", baseTotal);
         if (nextBlock < prevBlock) {
-          const prevSec = rowWindowSec(i, "daily", baseTotal, prevTight);
-          const nextSec = rowWindowSec(nextIndex, "daily", baseTotal, nextTight);
-          if (nextSec < prevSec) {
-            unlockAudio();
-            paceDrop();
-            setPaceCue(nextSec);
-          }
+          unlockAudio();
+          paceDrop();
+          setPaceCue(nextBlock);
         }
       }
 
@@ -709,7 +705,7 @@ export function GameScreen({
 
       {view === "play" && paceCue !== null && (
         <div className="pace-drop" aria-live="polite">
-          <span>Timeout</span>
+          <span>Max timeout</span>
           <strong>{formatWindowLabel(paceCue)}</strong>
         </div>
       )}
