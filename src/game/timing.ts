@@ -14,8 +14,8 @@ export const BONUS_WINDOW_STEP_SEC = 0.1;
 export const BONUS_WINDOW_FLOOR_SEC = 2;
 export const BONUS_WINDOW_BLOCK = 10;
 
-/** Each correct tightens the next bar by this many seconds. */
-export const TIGHTNESS_STEP_SEC = 0.5;
+/** Each correct tightens the next bar by this many seconds (⅓s; three hits = 1s). */
+export const TIGHTNESS_STEP_SEC = 1 / 3;
 /** A miss loosens the next bar by this many seconds (never above the current block). */
 export const TIGHTNESS_MISS_SEC = 1;
 /** Combo floor on the daily board (and practice). Endless uses `BONUS_WINDOW_FLOOR_SEC`. */
@@ -64,7 +64,9 @@ export function rowWindowSec(
   if (steps === 0) return block;
   const trimmed = block - steps * TIGHTNESS_STEP_SEC;
   const floor = windowFloorSec(rowIndex, mode, baseTotal);
-  return Math.max(floor, Math.min(block, snapWindowSec(trimmed)));
+  // Keep exact thirds on the clock; tenths are only for the chip label.
+  const ms = Math.round(Math.max(floor, Math.min(block, trimmed)) * 1000);
+  return ms / 1000;
 }
 
 export function rowWindowMs(
@@ -76,7 +78,7 @@ export function rowWindowMs(
   return rowWindowSec(rowIndex, mode, baseTotal, tightness) * 1000;
 }
 
-/** Per-row windows matching live tightness (−0.5s correct, +1s miss, reset at endless). */
+/** Per-row windows matching live tightness (−⅓s correct, +1s miss, reset at endless). */
 export function replayRowWindowSec(
   total: number,
   correctMask: readonly boolean[],
