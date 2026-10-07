@@ -98,6 +98,16 @@ export async function waitForTriviaPainted(node: HTMLElement): Promise<void> {
   await nextFrame();
 }
 
+/** SVG foreignObject restarts CSS animations at the first keyframe (opacity 0). */
+function freezeTriviaForCapture(clone: HTMLElement): void {
+  clone.querySelectorAll<HTMLElement>(".trivia-target").forEach((el) => {
+    el.style.setProperty("animation", "none", "important");
+    el.style.setProperty("filter", "none", "important");
+    el.style.setProperty("transform", "none", "important");
+    el.style.setProperty("opacity", "1", "important");
+  });
+}
+
 export async function captureNodePng(node: HTMLElement, pad = CAPTURE_PAD): Promise<Blob> {
   if (node.querySelector(".trivia-wait") && !node.querySelector(".trivia-target")) {
     await waitForTriviaPainted(node);
@@ -115,11 +125,12 @@ export async function captureNodePng(node: HTMLElement, pad = CAPTURE_PAD): Prom
   clone.style.background = BG;
   clone.style.overflow = "hidden";
   clone.style.boxSizing = "border-box";
+  freezeTriviaForCapture(clone);
   const svg =
     `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}">` +
     `<foreignObject width="100%" height="100%">` +
     `<div xmlns="http://www.w3.org/1999/xhtml" style="box-sizing:border-box;width:${width}px;height:${height}px;padding:${pad}px;background:${BG};color:#eeeeee;font-family:'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;">` +
-    `<style>${css}</style>${clone.outerHTML}</div></foreignObject></svg>`;
+    `<style>${css}.trivia-target{animation:none!important;filter:none!important;transform:none!important;opacity:1!important}</style>${clone.outerHTML}</div></foreignObject></svg>`;
   return withTimeout(drawSvg(svg, width, height, scale), 8000);
 }
 
